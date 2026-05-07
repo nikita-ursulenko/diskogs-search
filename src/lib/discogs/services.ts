@@ -48,8 +48,12 @@ export const discogsService = {
    * Get marketplace stats (low, median, high price history).
    */
   async getReleaseStats(releaseId: number) {
-    const endpoint = `/marketplace/stats/${releaseId}`;
-    return discogs.request<any>(endpoint);
+    try {
+      const endpoint = `/marketplace/stats/${releaseId}`;
+      return await discogs.request<any>(endpoint);
+    } catch {
+      return null;
+    }
   },
 
   async getPriceSuggestions(releaseId: number) {

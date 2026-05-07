@@ -62,7 +62,11 @@ export class DiscogsClient {
       if (retries > 0 && (error.message.includes("502") || error.message.includes("504"))) {
          return this.request<T>(endpoint, options, retries - 1);
       }
-      logger.error(`Failed to fetch ${endpoint}`, error.message);
+      
+      // Don't log 404 or 403 as errors (they are often handled gracefully as "no data")
+      if (!error.message.includes("404") && !error.message.includes("403")) {
+        logger.error(`Failed to fetch ${endpoint}`, error.message);
+      }
       throw error;
     }
   }
