@@ -24,6 +24,7 @@ export interface DiscogsSearchResult {
   barcode?: string[];
   num_for_sale?: number;
   lowest_price?: number;
+  master_id?: number;
   community?: {
     want: number;
     have: number;
@@ -38,6 +39,7 @@ export interface DiscogsSearchResponse {
 export type Radar = {
   id: string;
   releaseId: number;
+  masterId?: number;
   artist: string;
   release: string;
   thumb?: string;

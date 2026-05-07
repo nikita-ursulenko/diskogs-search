@@ -33,8 +33,19 @@ export async function GET() {
         
         try {
           // 2. Проверяем текущие цены на Discogs
-          const details = await discogsService.getReleaseDetails(radar.releaseId);
-          const currentPrice = details.lowest_price;
+          let currentPrice: number | undefined;
+          let currentReleaseId = radar.releaseId;
+          
+          if (radar.masterId) {
+            // Если включено отслеживание Master Release — ищем самое дешевое предложение среди всех версий
+            const cheapestVersion = await discogsService.getCheapestFromMaster(radar.masterId);
+            currentPrice = cheapestVersion?.lowest_price;
+            if (cheapestVersion) currentReleaseId = cheapestVersion.id;
+          } else {
+            // Обычное отслеживание конкретного релиза
+            const details = await discogsService.getReleaseDetails(radar.releaseId);
+            currentPrice = details.lowest_price;
+          }
           
           if (!currentPrice) continue;
           
@@ -45,13 +56,27 @@ export async function GET() {
           // - И цена изменилась (упала) по сравнению с последним уведомлением
           if (currentPrice <= targetPrice && (!radar.lastPrice || currentPrice < radar.lastPrice)) {
             
-            const message = `🎯 <b>VinylSniper: Находка!</b>\n\n` +
+            const caption = `🎯 <b>VinylSniper: Находка!</b>\n\n` +
               `📦 <b>${radar.artist} — ${radar.release}</b>\n` +
-              `💰 Цена упала до: <b>$${currentPrice}</b>\n` +
-              `📉 Ваш лимит: $${radar.maxPrice}\n\n` +
-              `🔗 <a href="https://www.discogs.com/release/${radar.releaseId}">Открыть на Discogs</a>`;
+              `${radar.masterId ? '💿 <i>(Любая версия альбома)</i>\n' : ''}` +
+              `💰 Цена: <b>$${currentPrice}</b> (Лимит: $${radar.maxPrice})`;
             
-            await telegram.sendMessage(chatId, message);
+            const reply_markup = {
+              inline_keyboard: [
+                [
+                  { text: "🛒 Купить на Marketplace", url: `https://www.discogs.com/sell/release/${currentReleaseId}?ev=rb` }
+                ],
+                [
+                  { text: "🔍 Детали релиза", url: `https://www.discogs.com/release/${currentReleaseId}` }
+                ]
+              ]
+            };
+
+            if (radar.thumb) {
+              await telegram.sendPhoto(chatId, radar.thumb, caption, { reply_markup });
+            } else {
+              await telegram.sendMessage(chatId, caption, { reply_markup });
+            }
             
             radar.lastPrice = currentPrice;
             hasUpdates = true;

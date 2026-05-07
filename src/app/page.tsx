@@ -43,13 +43,15 @@ export default function Home() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [sortBy, setSortBy] = useState<"price_asc" | "relevance">("relevance");
+  const [isMobile, setIsMobile] = useState(false);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
-    mediaCondition: "",
-    sleeveCondition: "",
+    mediaCondition: "Near Mint (NM or M-)",
+    sleeveCondition: "Very Good Plus (VG+)",
     maxPrice: "",
-    notes: ""
+    notes: "",
+    trackMaster: false
   });
 
   // Init Telegram and Fetch Radars
@@ -58,9 +60,12 @@ export default function Home() {
       const tg = (window as any).Telegram.WebApp;
       tg.expand();
       
-      const user = tg.initDataUnsafe?.user;
-      if (user?.id) {
-        setUserId(user.id.toString());
+      // Detect platform
+      const platform = tg.platform;
+      setIsMobile(platform === 'ios' || platform === 'android');
+      
+      if (tg.initDataUnsafe?.user?.id) {
+        setUserId(tg.initDataUnsafe.user.id.toString());
       }
     }
   }, []);
@@ -134,6 +139,7 @@ export default function Home() {
     const newWatch: Radar = {
       id: Math.random().toString(36).substr(2, 9),
       releaseId: selectedRelease.id,
+      masterId: data.trackMaster ? selectedRelease.master_id : undefined,
       artist: selectedRelease.title.split(" - ")[0],
       release: selectedRelease.title.split(" - ")[1] || selectedRelease.title,
       thumb: selectedRelease.thumb,
@@ -157,7 +163,13 @@ export default function Home() {
     setTimeout(() => {
       setSelectedRelease(null);
       setReleaseDetails(null);
-      setFormState({ mediaCondition: "", sleeveCondition: "", maxPrice: "", notes: "" });
+      setFormState({ 
+        mediaCondition: "Near Mint (NM or M-)", 
+        sleeveCondition: "Very Good Plus (VG+)", 
+        maxPrice: "", 
+        notes: "", 
+        trackMaster: false 
+      });
     }, 300);
   };
 
@@ -175,7 +187,10 @@ export default function Home() {
     <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[calc(80px+env(safe-area-inset-bottom,20px))]">
       
       {/* Premium Header */}
-      <header className="px-5 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+      <header 
+        className="px-5 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
+        style={{ paddingTop: isMobile ? 'calc(3.5rem + env(safe-area-inset-top, 0px))' : '1rem' }}
+      >
         <div className="flex items-center gap-3 text-amber-400">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
             <Disc3 className="w-5 h-5 text-black animate-[spin_4s_linear_infinite]" />

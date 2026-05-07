@@ -16,12 +16,13 @@ interface ReleaseDrawerProps {
   isLoadingDetails: boolean;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string }) => void;
+  onSave: (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean }) => void;
   formState: {
     mediaCondition: string;
     sleeveCondition: string;
     maxPrice: string;
     notes: string;
+    trackMaster: boolean;
   };
   setFormState: (state: any) => void;
 }
@@ -191,65 +192,80 @@ export function ReleaseDrawer({
                     </div>
                   )}
 
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                      <Settings className="w-3.5 h-3.5" /> Настройка Радара
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Мин. Винил</Label>
-                        <Select value={formState.mediaCondition} onValueChange={(v) => v && setFormState({ ...formState, mediaCondition: v })}>
-                          <SelectTrigger className="bg-[#1a1a1f] border-white/5 h-11 rounded-xl">
-                            <SelectValue placeholder="Любое" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#1a1a1f] border-white/10 text-white">
-                            <SelectItem value="Mint (M)">Mint (M)</SelectItem>
-                            <SelectItem value="Near Mint (NM or M-)">Near Mint (NM)</SelectItem>
-                            <SelectItem value="Very Good Plus (VG+)">VG+</SelectItem>
-                            <SelectItem value="Very Good (VG)">VG</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        <Settings className="w-3.5 h-3.5" /> Настройка Радара
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Мин. Конверт</Label>
-                        <Select value={formState.sleeveCondition} onValueChange={(v) => v && setFormState({ ...formState, sleeveCondition: v })}>
-                          <SelectTrigger className="bg-[#1a1a1f] border-white/5 h-11 rounded-xl">
-                            <SelectValue placeholder="Любое" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-[#1a1a1f] border-white/10 text-white">
-                            <SelectItem value="Mint (M)">Mint (M)</SelectItem>
-                            <SelectItem value="Near Mint (NM or M-)">Near Mint (NM)</SelectItem>
-                            <SelectItem value="Very Good Plus (VG+)">VG+</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                      
+                      {selectedRelease.master_id && (
+                        <div 
+                          className="flex items-center justify-between p-4 bg-[#1a1a1f] border border-white/5 rounded-2xl cursor-pointer active:bg-white/5 transition-colors"
+                          onClick={() => setFormState({ ...formState, trackMaster: !formState.trackMaster })}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-bold text-white">Весь Master Release</span>
+                            <span className="text-[10px] text-zinc-500 font-medium">Следить за любой версией этого альбома</span>
+                          </div>
+                          <div className={`w-10 h-5 rounded-full relative transition-colors ${formState.trackMaster ? 'bg-amber-500' : 'bg-zinc-700'}`}>
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${formState.trackMaster ? 'right-0.5' : 'left-0.5'}`}></div>
+                          </div>
+                        </div>
+                      )}
 
-                    <div className="space-y-1.5">
-                      <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Твоя макс. цена ($)</Label>
-                      <Input type="number" placeholder="Например: 150" value={formState.maxPrice} onChange={(e) => setFormState({ ...formState, maxPrice: e.target.value })} className="bg-[#1a1a1f] border-emerald-500/20 focus-visible:ring-emerald-500/50 text-emerald-400 font-black h-12 rounded-xl" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Мин. Винил</Label>
+                          <Select value={formState.mediaCondition} onValueChange={(v) => v && setFormState({ ...formState, mediaCondition: v })}>
+                            <SelectTrigger className="bg-[#1a1a1f] border-white/5 h-11 rounded-xl">
+                              <SelectValue placeholder="Любое" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a1a1f] border-white/10 text-white">
+                              <SelectItem value="Mint (M)">Mint (M)</SelectItem>
+                              <SelectItem value="Near Mint (NM or M-)">Near Mint (NM)</SelectItem>
+                              <SelectItem value="Very Good Plus (VG+)">VG+</SelectItem>
+                              <SelectItem value="Very Good (VG)">VG</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Мин. Конверт</Label>
+                          <Select value={formState.sleeveCondition} onValueChange={(v) => v && setFormState({ ...formState, sleeveCondition: v })}>
+                            <SelectTrigger className="bg-[#1a1a1f] border-white/5 h-11 rounded-xl">
+                              <SelectValue placeholder="Любое" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a1a1f] border-white/10 text-white">
+                              <SelectItem value="Mint (M)">Mint (M)</SelectItem>
+                              <SelectItem value="Near Mint (NM or M-)">Near Mint (NM)</SelectItem>
+                              <SelectItem value="Very Good Plus (VG+)">VG+</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Твоя макс. цена ($)</Label>
+                        <Input type="number" placeholder="Например: 150" value={formState.maxPrice} onChange={(e) => setFormState({ ...formState, maxPrice: e.target.value })} className="bg-[#1a1a1f] border-emerald-500/20 focus-visible:ring-emerald-500/50 text-emerald-400 font-black h-12 rounded-xl" />
+                      </div>
+                      
+                      <Button onClick={() => onSave(formState)} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black h-14 rounded-2xl shadow-[0_10px_20px_rgba(245,158,11,0.2)]">
+                        Активировать Радар
+                      </Button>
+                      
+                      <div className="pt-2 pb-6">
+                        <a 
+                          href={releaseDetails.uri} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className={cn(
+                            buttonVariants({ variant: "outline" }),
+                            "w-full h-14 rounded-2xl border-amber-500/20 bg-amber-500/5 text-amber-200 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500 transition-all gap-3 group flex items-center justify-center"
+                          )}
+                        >
+                          <ExternalLink className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" /> 
+                          <span className="font-bold text-base">Открыть на Discogs</span>
+                        </a>
+                      </div>
                     </div>
-                    
-                    <Button onClick={() => onSave(formState)} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black h-14 rounded-2xl shadow-[0_10px_20px_rgba(245,158,11,0.2)]">
-                      Активировать Радар
-                    </Button>
-                    
-                    <div className="pt-2 pb-6">
-                      <a 
-                        href={releaseDetails.uri} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className={cn(
-                          buttonVariants({ variant: "outline" }),
-                          "w-full h-14 rounded-2xl border-amber-500/20 bg-amber-500/5 text-amber-200 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500 transition-all gap-3 group flex items-center justify-center"
-                        )}
-                      >
-                        <ExternalLink className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" /> 
-                        <span className="font-bold text-base">Открыть на Discogs</span>
-                      </a>
-                    </div>
-                  </div>
                 </div>
               ) : null}
             </div>

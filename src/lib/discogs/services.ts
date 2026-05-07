@@ -47,5 +47,14 @@ export const discogsService = {
   async getReleaseStats(releaseId: number) {
     const endpoint = `/marketplace/stats/${releaseId}`;
     return discogs.request<any>(endpoint);
+  },
+
+  /**
+   * Find the cheapest available release within a Master Release.
+   */
+  async getCheapestFromMaster(masterId: number) {
+    const endpoint = `/database/search?master_id=${masterId}&type=release&sort=price&sort_order=asc&per_page=1`;
+    const response = await discogs.request<DiscogsSearchResponse>(endpoint);
+    return response.results?.[0] || null;
   }
 };

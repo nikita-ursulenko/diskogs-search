@@ -30,8 +30,13 @@ export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <p className="text-xs text-amber-500 font-bold truncate uppercase tracking-tighter mb-0.5">{radar.artist}</p>
-            <h4 className="text-lg font-black text-white truncate leading-tight">{radar.release}</h4>
-            <p className="text-[10px] text-zinc-500 mt-1 font-medium">{radar.year} • {radar.format}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="text-lg font-black text-white truncate leading-tight">{radar.release}</h4>
+              {radar.masterId && (
+                <span className="shrink-0 text-[8px] font-black bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase tracking-widest">Master</span>
+              )}
+            </div>
+            <p className="text-[10px] text-zinc-500 font-medium">{radar.year} • {radar.format}</p>
             <div className="flex items-center flex-wrap gap-2 mt-2">
                 <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
                    <span className="opacity-60 font-medium">Лимит:</span>
