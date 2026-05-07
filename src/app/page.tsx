@@ -1,286 +1,228 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Disc3, Plus, Settings, Search, Trash2, PauseCircle, PlayCircle } from "lucide-react";
+import { Disc3, Plus, RadioReceiver, BellRing, ChevronDown, ChevronUp } from "lucide-react";
+import { searchDiscogsAction, getReleaseDetailsAction } from "./actions";
+import { DiscogsSearchResult, Radar } from "@/lib/discogs/types";
 
-// Types
-type Watchlist = {
-  id: string;
-  artist: string;
-  release: string;
-  condition: string;
-  maxPrice: string;
-  active: boolean;
-};
+// Extracted Components
+import { BottomNav } from "@/components/vinyl/BottomNav";
+import { RadarCard } from "@/components/vinyl/RadarCard";
+import { ReleaseDrawer } from "@/components/vinyl/ReleaseDrawer";
+import { SearchSection } from "@/components/vinyl/SearchSection";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("watchlists");
-  const [watchlists, setWatchlists] = useState<Watchlist[]>([
+  const [activeTab, setActiveTab] = useState("home");
+  const [isAdding, setIsAdding] = useState(false);
+  
+  const [watchlists, setWatchlists] = useState<Radar[]>([
     {
       id: "1",
-      artist: "Nirvana",
-      release: "Nevermind",
-      condition: "Near Mint (NM or M-)",
-      maxPrice: "50",
+      releaseId: 28715,
+      artist: "Daft Punk",
+      release: "Discovery",
+      year: "2001",
+      format: "2xLP, Album",
+      mediaCondition: "Near Mint (NM or M-)",
+      sleeveCondition: "Very Good Plus (VG+)",
+      maxPrice: "150",
+      notes: "Только оригинальный пресс (не ремастер).",
       active: true,
     },
   ]);
 
-  const [newArtist, setNewArtist] = useState("");
-  const [newRelease, setNewRelease] = useState("");
-  const [newCondition, setNewCondition] = useState("");
-  const [newMaxPrice, setNewMaxPrice] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedRelease, setSelectedRelease] = useState<DiscogsSearchResult | null>(null);
+  const [releaseDetails, setReleaseDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [sortBy, setSortBy] = useState<"price_asc" | "relevance">("relevance");
 
-  // Simulated Telegram user data
-  const [tgUser, setTgUser] = useState<any>(null);
+  // Release Setup Form State
+  const [formState, setFormState] = useState({
+    mediaCondition: "",
+    sleeveCondition: "",
+    maxPrice: "",
+    notes: ""
+  });
 
   useEffect(() => {
-    // Initialize Telegram Web App if available
     if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
       const tg = (window as any).Telegram.WebApp;
-      tg.ready();
       tg.expand();
-      setTgUser(tg.initDataUnsafe?.user);
-      
-      // Adapt theme
-      if (tg.colorScheme === "dark") {
-        document.documentElement.classList.add("dark");
-      }
     }
   }, []);
 
-  const handleAddWatchlist = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newArtist && !newRelease) return;
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => { document.body.style.overflow = "unset"; };
+  }, [isDrawerOpen]);
 
-    const newWatch: Watchlist = {
-      id: Math.random().toString(36).substring(7),
-      artist: newArtist,
-      release: newRelease,
-      condition: newCondition || "Any",
-      maxPrice: newMaxPrice || "Unlimited",
+  useEffect(() => {
+    async function fetchDetails() {
+      if (selectedRelease?.id) {
+        setIsLoadingDetails(true);
+        const res = await getReleaseDetailsAction(selectedRelease.id);
+        if (res.success) setReleaseDetails(res.data);
+        setIsLoadingDetails(false);
+      }
+    }
+    fetchDetails();
+  }, [selectedRelease]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery) return;
+    setIsSearching(true);
+    setSearchResults([]);
+    const res = await searchDiscogsAction(searchQuery, { onlyInStock });
+    if (res.success && res.data) setSearchResults(res.data.results);
+    setIsSearching(false);
+  };
+
+  const handleSaveWatchlist = (data: typeof formState) => {
+    if (!selectedRelease) return;
+
+    const newWatch: Radar = {
+      id: Math.random().toString(36).substr(2, 9),
+      releaseId: selectedRelease.id,
+      artist: selectedRelease.title.split(" - ")[0],
+      release: selectedRelease.title.split(" - ")[1] || selectedRelease.title,
+      thumb: selectedRelease.thumb,
+      year: selectedRelease.year,
+      format: selectedRelease.format?.[0],
+      mediaCondition: data.mediaCondition || "Any",
+      sleeveCondition: data.sleeveCondition || "Any",
+      maxPrice: data.maxPrice,
+      notes: data.notes,
       active: true,
     };
 
     setWatchlists([newWatch, ...watchlists]);
-    setNewArtist("");
-    setNewRelease("");
-    setNewCondition("");
-    setNewMaxPrice("");
-    setActiveTab("watchlists");
-  };
-
-  const toggleActive = (id: string) => {
-    setWatchlists(watchlists.map(w => w.id === id ? { ...w, active: !w.active } : w));
-  };
-
-  const deleteWatchlist = (id: string) => {
-    setWatchlists(watchlists.filter(w => w.id !== id));
+    setIsDrawerOpen(false);
+    setTimeout(() => {
+      setSelectedRelease(null);
+      setReleaseDetails(null);
+      setFormState({ mediaCondition: "", sleeveCondition: "", maxPrice: "", notes: "" });
+    }, 300);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans max-w-md mx-auto relative shadow-xl overflow-hidden">
-      {/* Header */}
-      <header className="px-4 py-4 border-b bg-white dark:bg-zinc-900 sticky top-0 z-10 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-primary">
-          <Disc3 className="w-6 h-6" />
-          <h1 className="text-xl font-bold tracking-tight">VinylSniper</h1>
-        </div>
-        {tgUser && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <span>{tgUser.first_name}</span>
+    <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[80px]">
+      
+      {/* Premium Header */}
+      <header className="px-5 py-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg">
+        <div className="flex items-center gap-3 text-amber-400">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+            <Disc3 className="w-5 h-5 text-black animate-[spin_4s_linear_infinite]" />
           </div>
-        )}
+          <h1 className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-amber-200 to-amber-500">
+            VinylSniper
+          </h1>
+        </div>
+        <button onClick={() => setActiveTab("inbox")} className="relative p-2 bg-white/5 rounded-full border border-white/10">
+          <BellRing className="w-4 h-4 text-amber-400" />
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a0a0c]"></span>
+        </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 pb-24 overflow-y-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          
-          <TabsContent value="watchlists" className="mt-0 space-y-4 outline-none">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Мои отслеживания</h2>
-              <Badge variant="secondary">{watchlists.length} активных</Badge>
+      <main className="flex-1 p-5 overflow-y-auto">
+        {activeTab === "home" && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            
+            {/* SEARCH SECTION WRAPPER */}
+            <div className="bg-[#141417] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+              <button 
+                onClick={() => setIsAdding(!isAdding)}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-white/[0.02] to-transparent hover:bg-white/[0.05]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full transition-colors ${isAdding ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-zinc-400'}`}>
+                    <Plus className={`w-5 h-5 transition-transform duration-300 ${isAdding ? 'rotate-45' : ''}`} />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-lg font-bold text-white">Добавить Радар</h2>
+                    <p className="text-xs text-zinc-500">Поиск по базе Discogs</p>
+                  </div>
+                </div>
+                {isAdding ? <ChevronUp className="w-5 h-5 text-zinc-500" /> : <ChevronDown className="w-5 h-5 text-zinc-500" />}
+              </button>
+
+              {isAdding && (
+                <div className="p-5 border-t border-white/5 bg-[#101013] animate-in slide-in-from-top-2">
+                  <SearchSection 
+                    query={searchQuery}
+                    setQuery={setSearchQuery}
+                    onSearch={handleSearch}
+                    isSearching={isSearching}
+                    onlyInStock={onlyInStock}
+                    setOnlyInStock={setOnlyInStock}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    results={searchResults}
+                    onSelectRelease={(r) => { setSelectedRelease(r); setIsDrawerOpen(true); }}
+                  />
+                </div>
+              )}
             </div>
 
-            {watchlists.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p>Нет активных поисков.</p>
-                <Button variant="link" onClick={() => setActiveTab("add")}>
-                  Добавить первый
-                </Button>
+            {/* RADARS LIST */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Твои Радары</h3>
+                <Badge variant="outline" className="text-amber-500 border-amber-500/20">{watchlists.length}</Badge>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {watchlists.map((w) => (
-                  <Card key={w.id} className={`transition-opacity ${w.active ? 'opacity-100' : 'opacity-60'}`}>
-                    <CardHeader className="pb-2 pt-4 px-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-base">{w.artist || "Любой артист"}</CardTitle>
-                          <CardDescription className="text-sm font-medium text-foreground">
-                            {w.release || "Любой релиз"}
-                          </CardDescription>
-                        </div>
-                        <Badge variant={w.active ? "default" : "outline"} className="ml-2 whitespace-nowrap">
-                          {w.maxPrice !== "Unlimited" ? `до $${w.maxPrice}` : "Любая цена"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-3">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        Состояние: <span className="font-medium">{w.condition}</span>
-                      </p>
-                    </CardContent>
-                    <CardFooter className="px-4 pb-4 pt-0 flex justify-between border-t pt-3 mt-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => toggleActive(w.id)}
-                        className={w.active ? "text-amber-500" : "text-emerald-500"}
-                      >
-                        {w.active ? <PauseCircle className="w-4 h-4 mr-2" /> : <PlayCircle className="w-4 h-4 mr-2" />}
-                        {w.active ? "Пауза" : "Возобновить"}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => deleteWatchlist(w.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Удалить
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
 
-          <TabsContent value="add" className="mt-0 outline-none">
-            <Card className="border-0 shadow-none bg-transparent">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle>Новый поиск</CardTitle>
-                <CardDescription>
-                  Укажи параметры пластинки. Как только она появится на Discogs, бот пришлет уведомление.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-0">
-                <form onSubmit={handleAddWatchlist} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="artist">Артист / Группа</Label>
-                    <Input 
-                      id="artist" 
-                      placeholder="Например: Pink Floyd" 
-                      value={newArtist}
-                      onChange={(e) => setNewArtist(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="release">Название релиза (Альбом)</Label>
-                    <Input 
-                      id="release" 
-                      placeholder="Например: The Dark Side of the Moon" 
-                      value={newRelease}
-                      onChange={(e) => setNewRelease(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="condition">Минимальное состояние</Label>
-                    <Select value={newCondition} onValueChange={(value) => setNewCondition(value || "")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Любое состояние" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Mint (M)">Mint (M)</SelectItem>
-                        <SelectItem value="Near Mint (NM or M-)">Near Mint (NM or M-)</SelectItem>
-                        <SelectItem value="Very Good Plus (VG+)">Very Good Plus (VG+)</SelectItem>
-                        <SelectItem value="Very Good (VG)">Very Good (VG)</SelectItem>
-                        <SelectItem value="Good Plus (G+)">Good Plus (G+)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Максимальная цена ($)</Label>
-                    <Input 
-                      id="price" 
-                      type="number" 
-                      placeholder="Например: 100" 
-                      value={newMaxPrice}
-                      onChange={(e) => setNewMaxPrice(e.target.value)}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full mt-4" size="lg">
-                    <Search className="w-4 h-4 mr-2" />
-                    Начать отслеживание
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-0 outline-none">
-            <Card className="border-0 shadow-none bg-transparent">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle>Настройки</CardTitle>
-                <CardDescription>Параметры уведомлений бота</CardDescription>
-              </CardHeader>
-              <CardContent className="px-0 space-y-4">
-                <div className="p-4 bg-muted rounded-lg text-sm">
-                  <p className="font-medium mb-1">Telegram ID:</p>
-                  <code className="text-xs">{tgUser?.id || "Не определен (вне Telegram)"}</code>
+              {watchlists.length === 0 ? (
+                <div className="py-12 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                  <RadioReceiver className="w-8 h-8 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-zinc-500">У тебя пока нет активных радаров.</p>
                 </div>
-                <Button variant="outline" className="w-full">
-                  Протестировать уведомление
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-        </Tabs>
+              ) : (
+                <div className="grid gap-4">
+                  {watchlists.map((radar) => (
+                    <RadarCard 
+                      key={radar.id} 
+                      radar={radar} 
+                      onToggleActive={(id) => setWatchlists(watchlists.map(w => w.id === id ? { ...w, active: !w.active } : w))}
+                      onDelete={(id) => setWatchlists(watchlists.filter(w => w.id !== id))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "inbox" && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <BellRing className="w-12 h-12 text-zinc-700 mb-6" />
+            <h3 className="text-xl font-black text-white">Уведомления</h3>
+            <p className="text-zinc-500 text-sm">Здесь появятся сообщения о находках.</p>
+          </div>
+        )}
       </main>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 w-full max-w-md bg-white dark:bg-zinc-900 border-t border-border flex justify-around p-2 pb-safe shadow-[0_-5px_15px_-10px_rgba(0,0,0,0.1)]">
-        <button 
-          onClick={() => setActiveTab("watchlists")}
-          className={`flex flex-col items-center justify-center w-20 py-2 rounded-xl transition-colors ${activeTab === "watchlists" ? "text-primary" : "text-muted-foreground hover:bg-muted"}`}
-        >
-          <Search className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Поиски</span>
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab("add")}
-          className={`flex flex-col items-center justify-center w-20 py-2 rounded-xl transition-colors ${activeTab === "add" ? "text-primary" : "text-muted-foreground hover:bg-muted"}`}
-        >
-          <div className={`p-1.5 rounded-full mb-1 ${activeTab === "add" ? "bg-primary/10" : ""}`}>
-            <Plus className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-medium">Добавить</span>
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab("settings")}
-          className={`flex flex-col items-center justify-center w-20 py-2 rounded-xl transition-colors ${activeTab === "settings" ? "text-primary" : "text-muted-foreground hover:bg-muted"}`}
-        >
-          <Settings className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Настройки</span>
-        </button>
-      </div>
+      <ReleaseDrawer 
+        selectedRelease={selectedRelease}
+        releaseDetails={releaseDetails}
+        isLoadingDetails={isLoadingDetails}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onSave={handleSaveWatchlist}
+        formState={formState}
+        setFormState={setFormState}
+      />
+
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }
