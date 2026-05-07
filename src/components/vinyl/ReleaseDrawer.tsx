@@ -181,7 +181,7 @@ export function ReleaseDrawer({
                           <span className="text-[8px] text-zinc-600 block uppercase mb-1">Current Low</span>
                           <span className="text-[10px] text-zinc-300 font-black">
                             {releaseDetails.stats?.lowest_price?.value || 
-                             (typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || 
+                             (releaseDetails.lowest_price && typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || 
                              releaseDetails.suggestions?.["Very Good (VG)"]?.value || "—"}
                           </span>
                         </div>
