@@ -178,7 +178,7 @@ export function ReleaseDrawer({
                       <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-3">История продаж</span>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="text-center bg-black/20 p-2 rounded-xl">
-                          <span className="text-[8px] text-zinc-600 block uppercase mb-1">Low</span>
+                          <span className="text-[8px] text-zinc-600 block uppercase mb-1">Current Low</span>
                           <span className="text-[10px] text-zinc-300 font-black">
                             {releaseDetails.stats?.lowest_price?.value || 
                              (typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || 

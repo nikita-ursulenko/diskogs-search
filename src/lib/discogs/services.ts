@@ -53,8 +53,13 @@ export const discogsService = {
   },
 
   async getPriceSuggestions(releaseId: number) {
-    const endpoint = `/marketplace/price_suggestions/${releaseId}`;
-    return discogs.request<any>(endpoint);
+    try {
+      const endpoint = `/marketplace/price_suggestions/${releaseId}`;
+      return await discogs.request<any>(endpoint);
+    } catch (error: any) {
+      // Игнорируем ошибку 404/403 (настройки продавца), чтобы не спамить в логи
+      return null;
+    }
   },
 
   /**

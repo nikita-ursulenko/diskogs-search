@@ -5,11 +5,19 @@
 export const redis = {
   async get<T>(key: string): Promise<T | null> {
     try {
-      const response = await fetch(`${process.env.KV_REST_API_URL}/get/${key}`, {
+      const url = process.env.KV_REST_API_URL;
+      const token = process.env.KV_REST_API_TOKEN;
+
+      if (!url || !token) {
+        console.error("Critical: Redis environment variables are missing!", { url: !!url, token: !!token });
+        return null;
+      }
+
+      const response = await fetch(`${url}/get/${key}`, {
         headers: {
-          Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
-        cache: 'no-store', // Always fetch fresh data for radars
+        cache: 'no-store',
       });
       
       if (!response.ok) return null;
@@ -35,15 +43,23 @@ export const redis = {
 
   async set(key: string, value: any, options?: { ex?: number }): Promise<void> {
     try {
-      let url = `${process.env.KV_REST_API_URL}/set/${key}`;
+      const url = process.env.KV_REST_API_URL;
+      const token = process.env.KV_REST_API_TOKEN;
+
+      if (!url || !token) {
+        console.error("Critical: Redis environment variables are missing (SET)!");
+        return;
+      }
+
+      let fetchUrl = `${url}/set/${key}`;
       if (options?.ex) {
-        url += `?ex=${options.ex}`;
+        fetchUrl += `?ex=${options.ex}`;
       }
       
-      const response = await fetch(url, {
+      const response = await fetch(fetchUrl, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
         body: typeof value === 'string' ? value : JSON.stringify(value),
       });
@@ -60,9 +76,17 @@ export const redis = {
 
   async keys(pattern: string): Promise<string[]> {
     try {
-      const response = await fetch(`${process.env.KV_REST_API_URL}/keys/${pattern}`, {
+      const url = process.env.KV_REST_API_URL;
+      const token = process.env.KV_REST_API_TOKEN;
+
+      if (!url || !token) {
+        console.error("Critical: Redis environment variables are missing (KEYS)!");
+        return [];
+      }
+
+      const response = await fetch(`${url}/keys/${pattern}`, {
         headers: {
-          Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       if (!response.ok) return [];
