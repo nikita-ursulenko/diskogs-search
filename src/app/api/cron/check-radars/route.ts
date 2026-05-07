@@ -10,8 +10,16 @@ export const dynamic = 'force-dynamic';
  * CRON Job: Проверка всех активных радаров и отправка уведомлений.
  * Вызывается внешним планировщиком (например, Vercel Cron).
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    // 0. Проверка секретного ключа для безопасности
+    const { searchParams } = new URL(req.url);
+    const secret = searchParams.get('secret');
+    
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     // 1. Получаем все ключи радаров (всех пользователей)
     const keys = await redis.keys('vinyl_radars:*');
     let notificationsSent = 0;
