@@ -128,3 +128,37 @@ export async function toggleRadarAction(radarId: string, userId: string = "defau
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * USER SETTINGS ACTIONS
+ */
+export type UserSettings = {
+  notifications: boolean;
+  autoSearch: boolean;
+  currency: string;
+};
+
+const SETTINGS_KEY_PREFIX = "user_settings:";
+
+export async function getUserSettingsAction(userId: string = "default"): Promise<{ success: boolean; data?: UserSettings; error?: string }> {
+  try {
+    const settings = await redis.get<UserSettings>(`${SETTINGS_KEY_PREFIX}${userId}`);
+    return { 
+      success: true, 
+      data: settings || { notifications: true, autoSearch: true, currency: "USD" } 
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateUserSettingsAction(userId: string, settings: Partial<UserSettings>): Promise<{ success: boolean; error?: string }> {
+  try {
+    const current = await redis.get<UserSettings>(`${SETTINGS_KEY_PREFIX}${userId}`) || { notifications: true, autoSearch: true, currency: "USD" };
+    const updated = { ...current, ...settings };
+    await redis.set(`${SETTINGS_KEY_PREFIX}${userId}`, updated);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

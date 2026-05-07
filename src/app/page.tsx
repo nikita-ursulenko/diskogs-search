@@ -9,7 +9,10 @@ import {
   getRadarsAction, 
   saveRadarAction, 
   deleteRadarAction, 
-  toggleRadarAction 
+  toggleRadarAction,
+  getUserSettingsAction,
+  updateUserSettingsAction,
+  UserSettings
 } from "./actions";
 import { DiscogsSearchResult, Radar } from "@/lib/discogs/types";
 
@@ -25,6 +28,11 @@ export default function Home() {
   const [userId, setUserId] = useState("default");
   
   const [watchlists, setWatchlists] = useState<Radar[]>([]);
+  const [settings, setSettings] = useState<UserSettings>({
+    notifications: true,
+    autoSearch: true,
+    currency: "USD"
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
@@ -57,16 +65,29 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch Radars from Redis
+  // Fetch Radars and Settings from Redis
   useEffect(() => {
-    async function loadRadars() {
-      const res = await getRadarsAction(userId);
-      if (res.success && res.data) {
-        setWatchlists(res.data);
+    async function loadData() {
+      const [radarsRes, settingsRes] = await Promise.all([
+        getRadarsAction(userId),
+        getUserSettingsAction(userId)
+      ]);
+      
+      if (radarsRes.success && radarsRes.data) {
+        setWatchlists(radarsRes.data);
+      }
+      if (settingsRes.success && settingsRes.data) {
+        setSettings(settingsRes.data);
       }
     }
-    loadRadars();
+    loadData();
   }, [userId]);
+
+  const handleUpdateSetting = async (key: keyof UserSettings, value: any) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    await updateUserSettingsAction(userId, { [key]: value });
+  };
 
   useEffect(() => {
     if (isDrawerOpen) {
@@ -123,6 +144,7 @@ export default function Home() {
       maxPrice: data.maxPrice,
       notes: data.notes,
       active: true,
+      createdAt: Date.now(),
     };
 
     // Optimistic update
@@ -153,7 +175,7 @@ export default function Home() {
     <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[calc(80px+env(safe-area-inset-bottom,20px))]">
       
       {/* Premium Header */}
-      <header className="px-5 pb-4 pt-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}>
+      <header className="px-5 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <div className="flex items-center gap-3 text-amber-400">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
             <Disc3 className="w-5 h-5 text-black animate-[spin_4s_linear_infinite]" />
@@ -261,21 +283,27 @@ export default function Home() {
                 <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Конфигурация Радара</h4>
               </div>
               <div className="divide-y divide-white/5">
-                <div className="p-4 flex items-center justify-between">
+                <div 
+                  className="p-4 flex items-center justify-between cursor-pointer active:bg-white/5 transition-colors"
+                  onClick={() => handleUpdateSetting('notifications', !settings.notifications)}
+                >
                   <span className="text-sm font-medium text-zinc-300">Push-уведомления</span>
-                  <div className="w-10 h-5 bg-amber-500 rounded-full relative">
-                    <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+                  <div className={`w-10 h-5 rounded-full relative transition-colors ${settings.notifications ? 'bg-amber-500' : 'bg-zinc-700'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${settings.notifications ? 'right-0.5' : 'left-0.5'}`}></div>
                   </div>
                 </div>
-                <div className="p-4 flex items-center justify-between">
+                <div 
+                  className="p-4 flex items-center justify-between cursor-pointer active:bg-white/5 transition-colors"
+                  onClick={() => handleUpdateSetting('autoSearch', !settings.autoSearch)}
+                >
                   <span className="text-sm font-medium text-zinc-300">Авто-поиск (раз в 15 мин)</span>
-                  <div className="w-10 h-5 bg-amber-500 rounded-full relative">
-                    <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+                  <div className={`w-10 h-5 rounded-full relative transition-colors ${settings.autoSearch ? 'bg-amber-500' : 'bg-zinc-700'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${settings.autoSearch ? 'right-0.5' : 'left-0.5'}`}></div>
                   </div>
                 </div>
                 <div className="p-4 flex items-center justify-between">
                   <span className="text-sm font-medium text-zinc-300">Валюта</span>
-                  <span className="text-xs font-bold text-amber-500 uppercase">USD ($)</span>
+                  <span className="text-xs font-bold text-amber-500 uppercase">{settings.currency} ($)</span>
                 </div>
               </div>
             </div>

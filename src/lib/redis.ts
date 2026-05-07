@@ -51,5 +51,21 @@ export const redis = {
       console.error("Redis Set Error:", error);
       throw error;
     }
+  },
+
+  async keys(pattern: string): Promise<string[]> {
+    try {
+      const response = await fetch(`${process.env.KV_REST_API_URL}/keys/${pattern}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+        },
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.result || [];
+    } catch (error) {
+      console.error("Redis Keys Error:", error);
+      return [];
+    }
   }
 };

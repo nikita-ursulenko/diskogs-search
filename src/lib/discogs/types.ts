@@ -37,7 +37,7 @@ export interface DiscogsSearchResponse {
 
 export type Radar = {
   id: string;
-  releaseId?: number;
+  releaseId: number;
   artist: string;
   release: string;
   thumb?: string;
@@ -48,4 +48,6 @@ export type Radar = {
   maxPrice: string;
   notes?: string;
   active: boolean;
+  lastPrice?: number;
+  createdAt: number;
 };

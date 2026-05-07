@@ -32,11 +32,18 @@ export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
             <p className="text-xs text-amber-500 font-bold truncate uppercase tracking-tighter mb-0.5">{radar.artist}</p>
             <h4 className="text-lg font-black text-white truncate leading-tight">{radar.release}</h4>
             <p className="text-[10px] text-zinc-500 mt-1 font-medium">{radar.year} • {radar.format}</p>
-            <div className="flex items-center gap-3 mt-2">
-                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                   <span>до ${radar.maxPrice}</span>
+            <div className="flex items-center flex-wrap gap-2 mt-2">
+                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                   <span className="opacity-60 font-medium">Лимит:</span>
+                   <span>${radar.maxPrice}</span>
                 </div>
-                <span className="text-[10px] text-zinc-600 uppercase font-black">{radar.mediaCondition}</span>
+                {radar.lastPrice && (
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 animate-in fade-in zoom-in duration-500">
+                    <span className="opacity-60 font-medium">Сейч.:</span>
+                    <span>${radar.lastPrice}</span>
+                  </div>
+                )}
+                <span className="text-[9px] text-zinc-600 uppercase font-black ml-auto">{radar.mediaCondition}</span>
             </div>
           </div>
         </div>
