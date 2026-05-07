@@ -34,51 +34,50 @@ export async function GET(req: Request) {
       }
 
       const radars = await redis.get<Radar[]>(key) || [];
+      const userCurrency = settings?.currency || 'USD';
+      const currencyMap: any = { 'USD': '$', 'EUR': '€', 'GBP': '£' };
+      const symbol = currencyMap[userCurrency] || '$';
+
       let hasUpdates = false;
       
       for (const radar of radars) {
         if (!radar.active) continue;
         
         try {
-          // 2. Проверяем текущие цены на Discogs
+          // 2. Проверяем текущие цены на Discogs с учетом валюты пользователя
           let currentPrice: number | undefined;
           let currentReleaseId = radar.releaseId;
           
           if (radar.masterId) {
-            // Если включено отслеживание Master Release — ищем самое дешевое предложение среди всех версий
-            const cheapestVersion = await discogsService.getCheapestFromMaster(radar.masterId, radar.country);
+            const cheapestVersion = await discogsService.getCheapestFromMaster(radar.masterId, radar.country, userCurrency);
             currentPrice = cheapestVersion?.lowest_price;
             if (cheapestVersion) currentReleaseId = cheapestVersion.id;
           } else if (radar.country) {
-            // Обычное отслеживание конкретного релиза, НО с фильтром по стране
-            const cheapestInCountry = await discogsService.getCheapestFromRelease(radar.releaseId, radar.country);
+            const cheapestInCountry = await discogsService.getCheapestFromRelease(radar.releaseId, radar.country, userCurrency);
             currentPrice = cheapestInCountry?.lowest_price;
             if (cheapestInCountry) currentReleaseId = cheapestInCountry.id;
           } else {
-            // Обычное отслеживание конкретного релиза (весь мир)
-            const details = await discogsService.getReleaseDetails(radar.releaseId);
-            currentPrice = details.lowest_price;
+            // Обычное отслеживание (весь мир) - используем поиск чтобы передать валюту
+            const cheapestAnywhere = await discogsService.getCheapestFromRelease(radar.releaseId, undefined, userCurrency);
+            currentPrice = cheapestAnywhere?.lowest_price;
           }
           
           if (!currentPrice) continue;
           
           const targetPrice = parseFloat(radar.maxPrice);
           
-          // 3. Условие уведомления:
-          // - Цена ниже или равна лимиту пользователя
-          // - И цена изменилась (упала) по сравнению с последним уведомлением
           if (currentPrice <= targetPrice && (!radar.lastPrice || currentPrice < radar.lastPrice)) {
             
             const caption = `🎯 <b>VinylSniper: Находка!</b>\n\n` +
               `📦 <b>${radar.artist} — ${radar.release}</b>\n` +
               `${radar.masterId ? '💿 <i>(Любая версия альбома)</i>\n' : ''}` +
               `${radar.country ? `🌍 Регион: <b>${radar.country}</b>\n` : ''}` +
-              `💰 Цена: <b>$${currentPrice}</b> (Лимит: $${radar.maxPrice})`;
+              `💰 Цена: <b>${currentPrice}${symbol}</b> (Лимит: ${radar.maxPrice}${symbol})`;
             
             const reply_markup = {
               inline_keyboard: [
                 [
-                  { text: "🛒 Купить на Marketplace", url: `https://www.discogs.com/sell/release/${currentReleaseId}?ev=rb` }
+                  { text: "🛒 Купить на Marketplace", url: `https://www.discogs.com/sell/release/${currentReleaseId}?ev=rb&curr=${userCurrency}` }
                 ],
                 [
                   { text: "🔍 Детали релиза", url: `https://www.discogs.com/release/${currentReleaseId}` }

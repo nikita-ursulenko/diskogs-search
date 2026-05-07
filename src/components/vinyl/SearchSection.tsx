@@ -19,6 +19,7 @@ interface SearchSectionProps {
   setSortBy: (s: any) => void;
   results: DiscogsSearchResult[];
   onSelectRelease: (r: DiscogsSearchResult) => void;
+  currency?: string;
 }
 
 export function SearchSection({
@@ -31,9 +32,12 @@ export function SearchSection({
   sortBy,
   setSortBy,
   results,
-  onSelectRelease
+  onSelectRelease,
+  currency = 'USD'
 }: SearchSectionProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const currencyMap: any = { 'USD': '$', 'EUR': '€', 'GBP': '£' };
+  const symbol = currencyMap[currency] || '$';
 
   return (
     <div className="space-y-4">
@@ -189,7 +193,7 @@ export function SearchSection({
                     <div className="flex flex-col items-end">
                       <span className="text-[8px] text-zinc-500 uppercase font-black tracking-tighter mb-0.5">от</span>
                       <span className="text-base font-black text-amber-400 leading-none">
-                        ${result.lowest_price}
+                        {result.lowest_price}{symbol}
                       </span>
                     </div>
                   ) : (

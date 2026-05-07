@@ -12,11 +12,12 @@ export const discogsService = {
    */
   async searchDatabase(
     query: string,
-    params?: { year?: string; format?: string; type?: "release" | "master"; status?: string }
+    params?: { year?: string; format?: string; type?: "release" | "master"; status?: string; currency?: string }
   ): Promise<DiscogsSearchResponse> {
     const searchParams = new URLSearchParams();
     
     if (query) searchParams.append("q", query);
+    if (params?.currency) searchParams.append("curr", params.currency);
     
     searchParams.append("per_page", "50");
     
@@ -47,18 +48,20 @@ export const discogsService = {
   /**
    * Get marketplace stats (low, median, high price history).
    */
-  async getReleaseStats(releaseId: number) {
+  async getReleaseStats(releaseId: number, currency?: string) {
     try {
-      const endpoint = `/marketplace/stats/${releaseId}`;
+      let endpoint = `/marketplace/stats/${releaseId}`;
+      if (currency) endpoint += `?curr=${currency}`;
       return await discogs.request<any>(endpoint);
     } catch {
       return null;
     }
   },
 
-  async getPriceSuggestions(releaseId: number) {
+  async getPriceSuggestions(releaseId: number, currency?: string) {
     try {
-      const endpoint = `/marketplace/price_suggestions/${releaseId}`;
+      let endpoint = `/marketplace/price_suggestions/${releaseId}`;
+      if (currency) endpoint += `?curr=${currency}`;
       return await discogs.request<any>(endpoint);
     } catch (error: any) {
       // Игнорируем ошибку 404/403 (настройки продавца), чтобы не спамить в логи
@@ -69,7 +72,7 @@ export const discogsService = {
   /**
    * Find the cheapest available release within a Master Release.
    */
-  async getCheapestFromMaster(masterId: number, shipsFrom?: string) {
+  async getCheapestFromMaster(masterId: number, shipsFrom?: string, currency?: string) {
     const searchParams = new URLSearchParams({
       master_id: masterId.toString(),
       type: "release",
@@ -78,6 +81,7 @@ export const discogsService = {
       per_page: "1"
     });
     if (shipsFrom) searchParams.append("ships_from", shipsFrom);
+    if (currency) searchParams.append("curr", currency);
 
     const endpoint = `/database/search?${searchParams.toString()}`;
     const response = await discogs.request<DiscogsSearchResponse>(endpoint);
@@ -87,7 +91,7 @@ export const discogsService = {
   /**
    * Find the cheapest available listing for a specific release with country filter.
    */
-  async getCheapestFromRelease(releaseId: number, shipsFrom?: string) {
+  async getCheapestFromRelease(releaseId: number, shipsFrom?: string, currency?: string) {
     const searchParams = new URLSearchParams({
       release_id: releaseId.toString(),
       type: "release",
@@ -96,6 +100,7 @@ export const discogsService = {
       per_page: "1"
     });
     if (shipsFrom) searchParams.append("ships_from", shipsFrom);
+    if (currency) searchParams.append("curr", currency);
 
     const endpoint = `/database/search?${searchParams.toString()}`;
     const response = await discogs.request<DiscogsSearchResponse>(endpoint);

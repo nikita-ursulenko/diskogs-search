@@ -11,37 +11,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DiscogsSearchResult } from "@/lib/discogs/types";
 
 interface ReleaseDrawerProps {
-  selectedRelease: DiscogsSearchResult | null;
-  releaseDetails: any;
-  isLoadingDetails: boolean;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean; country?: string }) => void;
-  formState: {
-    mediaCondition: string;
-    sleeveCondition: string;
-    maxPrice: string;
-    notes: string;
-    trackMaster: boolean;
-    country?: string;
-  };
+  release: DiscogsSearchResult | null;
+  releaseDetails: any;
+  isLoading: boolean;
+  onSave: (data: any) => void;
+  formState: any;
   setFormState: (state: any) => void;
+  isEditing?: boolean;
+  currency?: string;
 }
 
-export function ReleaseDrawer({
-  selectedRelease,
-  releaseDetails,
-  isLoadingDetails,
-  isOpen,
-  onClose,
+export function ReleaseDrawer({ 
+  isOpen, 
+  onClose, 
+  release, 
+  releaseDetails, 
+  isLoading, 
   onSave,
   formState,
-  setFormState
+  setFormState,
+  isEditing = false,
+  currency = 'USD'
 }: ReleaseDrawerProps) {
   const [offsetY, setOffsetY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const pointerStartY = useRef<number>(0);
   const rafId = useRef<number | null>(null);
+
+  const currencyMap: any = { 'USD': '$', 'EUR': '€', 'GBP': '£' };
+  const symbol = currencyMap[currency] || '$';
 
   useEffect(() => {
     if (!isOpen) {
@@ -50,7 +50,7 @@ export function ReleaseDrawer({
     }
   }, [isOpen]);
 
-  if (!selectedRelease) return null;
+  if (!release) return null;
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
@@ -124,8 +124,8 @@ export function ReleaseDrawer({
             {/* Header */}
             <div className="flex items-start gap-4 mb-6">
               <div className="relative shrink-0">
-                {selectedRelease.thumb ? (
-                  <img src={selectedRelease.thumb} alt="cover" className="w-20 h-20 rounded-2xl shadow-2xl border border-white/10 object-cover" />
+                {release.thumb ? (
+                  <img src={release.thumb} alt="cover" className="w-20 h-20 rounded-2xl shadow-2xl border border-white/10 object-cover" />
                 ) : (
                   <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
                     <Disc3 className="w-10 h-10 text-zinc-800" />
@@ -135,10 +135,10 @@ export function ReleaseDrawer({
               <div className="flex-1 min-w-0 pt-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] px-1.5 py-0">Выбран</Badge>
-                  <span className="text-[10px] text-zinc-500 uppercase font-bold">{selectedRelease.year} • {selectedRelease.country || "Int"}</span>
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold">{release?.title.split(' - ')[0] || release?.title || "???"}</span>
                 </div>
-                <h3 className="text-xl font-black text-white leading-tight mb-1">{selectedRelease.title}</h3>
-                <p className="text-xs text-zinc-400 font-medium">{selectedRelease.format?.[0]}</p>
+                <h3 className="text-xl font-black text-white leading-tight mb-1">{release?.title.split(' - ')[1] || ""}</h3>
+                <p className="text-xs text-zinc-400 font-medium">{release.format?.[0]}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/5 h-8 w-8">
                 <Plus className="w-4 h-4 text-zinc-400 rotate-45" />
@@ -147,7 +147,7 @@ export function ReleaseDrawer({
 
             {/* Stats & Market Data */}
             <div className="space-y-6">
-              {isLoadingDetails ? (
+              {isLoading ? (
                 <div className="flex flex-col items-center py-8 gap-3">
                   <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
                   <p className="text-xs text-zinc-500 font-medium">Анализируем рынок Discogs...</p>
@@ -155,14 +155,23 @@ export function ReleaseDrawer({
               ) : releaseDetails ? (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#141417] p-4 rounded-2xl border border-white/5">
-                      <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">В продаже</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-emerald-400">{releaseDetails.num_for_sale}</span>
-                        <span className="text-xs text-zinc-500 font-medium">шт.</span>
+                    {releaseDetails.num_for_sale !== undefined && (
+                      <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-2">В продаже</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-black text-emerald-500">{releaseDetails.num_for_sale}</span>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">шт.</span>
+                        </div>
+                        {releaseDetails.lowest_price && (
+                          <p className="text-[10px] text-emerald-500/60 font-bold mt-1">
+                            от {(releaseDetails.stats?.lowest_price?.value || (typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price))}
+                            {(() => {
+                              return currencyMap[currency] || currencyMap[releaseDetails.stats?.currency] || symbol;
+                            })()}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-[10px] text-zinc-400 mt-1">от <span className="text-emerald-400/80 font-bold">{releaseDetails.lowest_price != null ? (typeof releaseDetails.lowest_price === 'object' ? `${releaseDetails.lowest_price.value} ${releaseDetails.lowest_price.currency}` : `$${releaseDetails.lowest_price}`) : "—"}</span></p>
-                    </div>
+                    )}
                     <div className="bg-[#141417] p-4 rounded-2xl border border-white/5">
                       <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Рейтинг</span>
                       <div className="flex items-baseline gap-1">
@@ -177,28 +186,41 @@ export function ReleaseDrawer({
                     <div className="bg-[#141417] p-4 rounded-2xl border border-white/5">
                       <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-3">История продаж</span>
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center bg-black/20 p-2 rounded-xl">
-                          <span className="text-[8px] text-zinc-600 block uppercase mb-1">Current Low</span>
-                          <span className="text-[10px] text-zinc-300 font-black">
-                            {releaseDetails.stats?.lowest_price?.value || 
-                             (releaseDetails.lowest_price && typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || 
-                             releaseDetails.suggestions?.["Very Good (VG)"]?.value || "—"}
-                          </span>
-                        </div>
-                        <div className="text-center bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
-                          <span className="text-[8px] text-amber-500/60 block uppercase mb-1">Median</span>
-                          <span className="text-[10px] text-amber-400 font-black">
-                            {releaseDetails.stats?.median?.value || 
-                             releaseDetails.suggestions?.["Very Good Plus (VG+)"]?.value || "—"}
-                          </span>
-                        </div>
-                        <div className="text-center bg-black/20 p-2 rounded-xl">
-                          <span className="text-[8px] text-zinc-600 block uppercase mb-1">High</span>
-                          <span className="text-[10px] text-zinc-300 font-black">
-                            {releaseDetails.stats?.highest_price?.value || 
-                             releaseDetails.suggestions?.["Near Mint (NM)"]?.value || "—"}
-                          </span>
-                        </div>
+                        {(() => {
+                          const displaySymbol = currencyMap[releaseDetails.stats?.currency] || symbol;
+                          
+                          const formatPrice = (val: any) => {
+                            if (!val) return "—";
+                            return `${val}${displaySymbol}`;
+                          };
+
+                          return (
+                            <>
+                              <div className="text-center bg-black/20 p-2 rounded-xl">
+                                <span className="text-[8px] text-zinc-600 block uppercase mb-1">Current Low</span>
+                                <span className="text-[10px] text-zinc-300 font-black">
+                                  {formatPrice(releaseDetails.stats?.lowest_price?.value || 
+                                   (releaseDetails.lowest_price && typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || 
+                                   releaseDetails.suggestions?.["Very Good (VG)"]?.value)}
+                                </span>
+                              </div>
+                              <div className="text-center bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
+                                <span className="text-[8px] text-amber-500/60 block uppercase mb-1">Median</span>
+                                <span className="text-[10px] text-amber-400 font-black">
+                                  {formatPrice(releaseDetails.stats?.median?.value || 
+                                   releaseDetails.suggestions?.["Very Good Plus (VG+)"]?.value)}
+                                </span>
+                              </div>
+                              <div className="text-center bg-black/20 p-2 rounded-xl">
+                                <span className="text-[8px] text-zinc-600 block uppercase mb-1">High</span>
+                                <span className="text-[10px] text-zinc-300 font-black">
+                                  {formatPrice(releaseDetails.stats?.highest_price?.value || 
+                                   releaseDetails.suggestions?.["Near Mint (NM)"]?.value)}
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -208,7 +230,7 @@ export function ReleaseDrawer({
                         <Settings className="w-3.5 h-3.5" /> Настройка Радара
                       </div>
                       
-                      {selectedRelease.master_id && (
+                      {release.master_id && (
                         <div className="space-y-3">
                           <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Область поиска</Label>
                           <div className="grid grid-cols-2 gap-3">
@@ -299,12 +321,27 @@ export function ReleaseDrawer({
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Твоя макс. цена ($)</Label>
-                        <Input type="number" placeholder="Например: 150" value={formState.maxPrice} onChange={(e) => setFormState({ ...formState, maxPrice: e.target.value })} className="bg-[#1a1a1f] border-emerald-500/20 focus-visible:ring-emerald-500/50 text-emerald-400 font-black h-12 rounded-xl" />
+                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Твоя макс. цена</Label>
+                        <div className="relative">
+                          <Input 
+                            type="number" 
+                            placeholder={`Цена в ${currency}...`}
+                            value={formState.maxPrice}
+                            onChange={(e) => setFormState({ ...formState, maxPrice: e.target.value })}
+                            className="bg-[#1a1a1f] border-white/5 h-12 pl-4 pr-10 rounded-xl focus:border-amber-500/50 transition-all text-amber-400 font-bold"
+                          />
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-black text-sm">
+                            {symbol}
+                          </div>
+                        </div>
                       </div>
                       
-                      <Button onClick={() => onSave(formState)} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black h-14 rounded-2xl shadow-[0_10px_20px_rgba(245,158,11,0.2)]">
-                        Активировать Радар
+                      <Button 
+                        onClick={() => onSave(formState)}
+                        disabled={!formState.maxPrice}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-black h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all"
+                      >
+                        {isEditing ? "Сохранить изменения" : "Создать радар"}
                       </Button>
                       
                       <div className="pt-2 pb-6">

@@ -48,6 +48,7 @@ export default function Home() {
   const [user, setUser] = useState<{ id: number; first_name: string; last_name?: string; username?: string } | null>(null);
   const [hasNewNotifications, setHasNewNotifications] = useState(true); // Default to true for demo
   const [isTestingNotification, setIsTestingNotification] = useState(false);
+  const [editingRadarId, setEditingRadarId] = useState<string | null>(null);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
@@ -114,7 +115,7 @@ export default function Home() {
     async function fetchDetails() {
       if (selectedRelease?.id) {
         setIsLoadingDetails(true);
-        const res = await getReleaseDetailsAction(selectedRelease.id);
+        const res = await getReleaseDetailsAction(selectedRelease.id, settings.currency);
         if (res.success) {
           setReleaseDetails(res.data);
           // Sync price back to search results so it's not "N/A" anymore
@@ -134,7 +135,7 @@ export default function Home() {
     if (!searchQuery) return;
     setIsSearching(true);
     setSearchResults([]);
-    const res = await searchDiscogsAction(searchQuery, { onlyInStock });
+    const res = await searchDiscogsAction(searchQuery, { onlyInStock, currency: settings.currency });
     if (res.success && res.data) {
       let results = res.data.results;
       if (onlyInStock) {
@@ -150,28 +151,34 @@ export default function Home() {
     performSearch();
   };
 
-  // Auto-update search when filters change
+  // Auto-update search when filters or currency change
+  useEffect(() => {
+    if (searchQuery) {
+      performSearch();
+    }
+  }, [onlyInStock, settings.currency]);
   useEffect(() => {
     if (searchQuery && searchResults.length > 0) {
       performSearch();
     }
   }, [onlyInStock]);
 
-  const handleSaveWatchlist = async (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean; country?: string }) => {
+  const handleSaveRadar = async (data: any) => {
     if (!selectedRelease) return;
 
+    const id = editingRadarId || Date.now().toString();
     const newWatch: Radar = {
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       releaseId: selectedRelease.id,
-      masterId: data.trackMaster ? selectedRelease.master_id : undefined,
-      artist: selectedRelease.title.split(" - ")[0],
-      release: selectedRelease.title.split(" - ")[1] || selectedRelease.title,
+      masterId: data.trackMaster ? (selectedRelease as any).master_id : undefined,
+      artist: selectedRelease.title.split(' - ')[0],
+      release: selectedRelease.title.split(' - ')[1] || selectedRelease.title,
       thumb: selectedRelease.thumb,
-      year: selectedRelease.year,
-      format: selectedRelease.format?.[0],
-      mediaCondition: data.mediaCondition || "Any",
-      sleeveCondition: data.sleeveCondition || "Any",
+      year: selectedRelease.year || "",
+      format: selectedRelease.format?.[0] || "Vinyl",
       maxPrice: data.maxPrice,
+      mediaCondition: data.mediaCondition,
+      sleeveCondition: data.sleeveCondition,
       notes: data.notes,
       active: true,
       country: data.country,
@@ -179,8 +186,13 @@ export default function Home() {
     };
 
     // Optimistic update
-    setWatchlists([newWatch, ...watchlists]);
+    if (editingRadarId) {
+      setWatchlists(watchlists.map(w => w.id === editingRadarId ? newWatch : w));
+    } else {
+      setWatchlists([newWatch, ...watchlists]);
+    }
     setIsDrawerOpen(false);
+    setEditingRadarId(null);
     
     // Persistent save
     await saveRadarAction(newWatch, userId);
@@ -207,6 +219,27 @@ export default function Home() {
   const handleDeleteRadar = async (id: string) => {
     setWatchlists(watchlists.filter(w => w.id !== id));
     await deleteRadarAction(id, userId);
+  };
+
+  const handleEditRadar = (radar: Radar) => {
+    setEditingRadarId(radar.id);
+    setSelectedRelease({
+      id: radar.releaseId,
+      title: `${radar.artist} - ${radar.release}`,
+      thumb: radar.thumb || "",
+      year: radar.year,
+      format: [radar.format],
+      country: radar.country
+    } as any);
+    setFormState({
+      maxPrice: radar.maxPrice,
+      mediaCondition: radar.mediaCondition,
+      sleeveCondition: radar.sleeveCondition,
+      notes: radar.notes || "",
+      trackMaster: !!radar.masterId,
+      country: radar.country || ""
+    });
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -274,6 +307,7 @@ export default function Home() {
                     setSortBy={setSortBy}
                     results={searchResults}
                     onSelectRelease={(r) => { setSelectedRelease(r); setIsDrawerOpen(true); }}
+                    currency={settings.currency}
                   />
                 </div>
               )}
@@ -299,6 +333,8 @@ export default function Home() {
                       radar={radar} 
                       onToggleActive={handleToggleActive}
                       onDelete={handleDeleteRadar}
+                      onEdit={handleEditRadar}
+                      currency={settings.currency}
                     />
                   ))}
                 </div>
@@ -372,7 +408,21 @@ export default function Home() {
                 </div>
                 <div className="p-4 flex items-center justify-between">
                   <span className="text-sm font-medium text-zinc-300">Валюта</span>
-                  <span className="text-xs font-bold text-amber-500 uppercase">{settings.currency} ($)</span>
+                  <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                    {['USD', 'EUR', 'GBP'].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => handleUpdateSetting('currency', c)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                          settings.currency === c 
+                            ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' 
+                            : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -397,14 +447,19 @@ export default function Home() {
       </main>
 
       <ReleaseDrawer 
-        selectedRelease={selectedRelease}
+        isOpen={isDrawerOpen} 
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setEditingRadarId(null);
+        }} 
+        release={selectedRelease}
         releaseDetails={releaseDetails}
-        isLoadingDetails={isLoadingDetails}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        onSave={handleSaveWatchlist}
+        isLoading={isLoadingDetails}
+        onSave={handleSaveRadar}
         formState={formState}
         setFormState={setFormState}
+        isEditing={!!editingRadarId}
+        currency={settings.currency}
       />
 
       <BottomNav 

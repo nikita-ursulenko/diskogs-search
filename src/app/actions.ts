@@ -6,52 +6,46 @@ import { telegram } from "@/lib/telegram";
 
 export async function searchDiscogsAction(
   query: string, 
-  options?: { format?: string; year?: string; onlyInStock?: boolean }
+  options?: { format?: string; year?: string; onlyInStock?: boolean; currency?: string }
 ): Promise<{ success: boolean; data?: DiscogsSearchResponse; error?: string }> {
   try {
     if (!query) {
       return { success: false, error: "Search query is empty" };
     }
 
+    // Try to get from cache first
+    const searchCacheKey = `search_v2:${query}:${JSON.stringify(options)}`;
+    try {
+      const cachedSearch = await discogsService.redis.get<any>(searchCacheKey);
+      if (cachedSearch) {
+        return { success: true, data: cachedSearch };
+      }
+    } catch (e) {
+      console.error("Search cache error:", e);
+    }
+
     const data = await discogsService.searchDatabase(query, {
       format: options?.format !== "Vinyl" ? options?.format : undefined,
       year: options?.year || undefined,
       status: options?.onlyInStock ? "for sale" : undefined,
+      currency: options?.currency
     });
 
     // Enrich the first 12 results with prices to avoid "N/A" in the list
     const enrichedResults = await Promise.all(
       data.results.slice(0, 12).map(async (item) => {
-        const cacheKey = `release_details:${item.id}`;
+        const itemCacheKey = `release_market_data:${item.id}:${options?.currency || 'USD'}`;
         try {
-          // 1. Try to get from cache first
-          const cached = await discogsService.redis.get<any>(cacheKey);
+          const cached = await discogsService.redis.get<any>(itemCacheKey);
           if (cached) {
             return {
               ...item,
-              lowest_price: cached.lowest_price,
-              num_for_sale: cached.num_for_sale
+              lowest_price: cached.stats?.lowest_price?.value || cached.lowest_price || item.lowest_price,
+              num_for_sale: cached.num_for_sale ?? item.num_for_sale
             };
           }
-
-          // 2. If not in cache, fetch from API
-          const details = await discogsService.getReleaseDetails(item.id);
-          
-          // 3. Save to cache for 1 hour (3600 seconds)
-          await discogsService.redis.set(cacheKey, {
-            lowest_price: details.lowest_price,
-            num_for_sale: details.num_for_sale
-          }, { ex: 3600 });
-
-          return {
-            ...item,
-            lowest_price: details.lowest_price,
-            num_for_sale: details.num_for_sale
-          };
-        } catch (e) {
-          console.error(`Failed to enrich/cache result ${item.id}:`, e);
-          return item;
-        }
+        } catch (e) {}
+        return item;
       })
     );
 
@@ -78,26 +72,49 @@ export async function searchDiscogsAction(
   }
 }
 
-export async function getReleaseDetailsAction(releaseId: number): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function getReleaseDetailsAction(releaseId: number, currency?: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    // Parallel fetch for details, marketplace stats and price suggestions
+    const cacheKey = `release_market_data:${releaseId}:${currency || 'USD'}`;
+    
+    // 1. Try to get from cache first
+    try {
+      const cached = await discogsService.redis.get<any>(cacheKey);
+      if (cached) {
+        return { success: true, data: cached };
+      }
+    } catch (e) {
+      console.error("Redis cache error:", e);
+    }
+
+    // 2. Fetch fresh data in parallel
     const [details, stats, suggestions] = await Promise.all([
       discogsService.getReleaseDetails(releaseId),
-      discogsService.getReleaseStats(releaseId).catch(() => null),
-      discogsService.getPriceSuggestions(releaseId).catch(() => null)
+      discogsService.getReleaseStats(releaseId, currency),
+      discogsService.getPriceSuggestions(releaseId, currency)
     ]);
 
-    return { 
-      success: true, 
-      data: { 
-        ...details, 
-        stats,
-        suggestions
-      } 
+    const enrichedData = {
+      ...details,
+      stats: stats || details.community?.rating || {},
+      suggestions: suggestions || {}
     };
+
+    // Add fallback currency info if stats are present
+    if (enrichedData.stats && !enrichedData.stats.currency && currency) {
+      enrichedData.stats.currency = currency;
+    }
+
+    // 3. Save to cache (24 hours)
+    try {
+      await discogsService.redis.set(cacheKey, enrichedData, { ex: 86400 });
+    } catch (e) {
+      console.error("Redis save error:", e);
+    }
+
+    return { success: true, data: enrichedData };
   } catch (error: any) {
-    console.error("Release Details Error:", error);
-    return { success: false, error: error.message || "Failed to fetch release details" };
+    console.error("Failed to fetch release details:", error);
+    return { success: false, error: error.message || "Failed to fetch details from Discogs" };
   }
 }
 

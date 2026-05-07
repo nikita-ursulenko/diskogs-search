@@ -2,16 +2,20 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Disc3, RadioReceiver, PauseCircle, PlayCircle, Trash2 } from "lucide-react";
+import { Disc3, RadioReceiver, PauseCircle, PlayCircle, Trash2, Settings2 } from "lucide-react";
 import { Radar } from "@/lib/discogs/types";
 
 interface RadarCardProps {
   radar: Radar;
   onToggleActive: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (radar: Radar) => void;
+  currency?: string;
 }
 
-export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
+export function RadarCard({ radar, onToggleActive, onDelete, onEdit, currency = 'USD' }: RadarCardProps) {
+  const currencyMap: any = { 'USD': '$', 'EUR': '€', 'GBP': '£' };
+  const symbol = currencyMap[currency] || '$';
   return (
     <Card className={`bg-[#141417] border-white/10 overflow-hidden transition-all duration-300 ${radar.active ? 'hover:border-amber-500/30' : ''}`}>
       <CardContent className="p-0">
@@ -41,16 +45,16 @@ export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
             </div>
             <p className="text-[10px] text-zinc-500 font-medium">{radar.year} • {radar.format}</p>
             <div className="flex items-center flex-wrap gap-2 mt-2">
-                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                   <span className="opacity-60 font-medium">Лимит:</span>
-                   <span>${radar.maxPrice}</span>
-                </div>
-                {radar.lastPrice && (
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 animate-in fade-in zoom-in duration-500">
-                    <span className="opacity-60 font-medium">Сейч.:</span>
-                    <span>${radar.lastPrice}</span>
-                  </div>
-                )}
+                 <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                    <span className="opacity-60 font-medium">Лимит:</span>
+                    <span>{radar.maxPrice}{symbol}</span>
+                 </div>
+                 {radar.lastPrice && (
+                   <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 animate-in fade-in zoom-in duration-500">
+                     <span className="opacity-60 font-medium">Сейч.:</span>
+                     <span>{radar.lastPrice}{symbol}</span>
+                   </div>
+                 )}
                 <span className="text-[9px] text-zinc-600 uppercase font-black ml-auto">{radar.mediaCondition}</span>
             </div>
           </div>
@@ -60,12 +64,21 @@ export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
             variant="ghost" 
             size="sm" 
             onClick={() => onToggleActive(radar.id)} 
-            className={`flex-1 gap-2 text-xs font-bold transition-all ${radar.active ? 'text-amber-400 hover:bg-amber-400/10' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 active:scale-95'}`}
+            className={`flex-1 gap-1.5 text-xs font-bold transition-all ${radar.active ? 'text-amber-400 hover:bg-amber-400/10' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 active:scale-95'}`}
           >
-            {radar.active ? <><PauseCircle className="w-4 h-4" /> Пауза</> : <><PlayCircle className="w-4 h-4" /> Запустить</>}
+            {radar.active ? <><PauseCircle className="w-4 h-4" /> Пауза</> : <><PlayCircle className="w-4 h-4" /> Старт</>}
           </Button>
-          <div className="w-px h-8 bg-white/5 self-center"></div>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(radar.id)} className="flex-1 gap-2 text-xs font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-all">
+          <div className="w-px h-6 bg-white/5 self-center"></div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onEdit?.(radar)} 
+            className="flex-1 gap-1.5 text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+          >
+            <Settings2 className="w-4 h-4" /> Изменить
+          </Button>
+          <div className="w-px h-6 bg-white/5 self-center"></div>
+          <Button variant="ghost" size="sm" onClick={() => onDelete(radar.id)} className="flex-1 gap-1.5 text-xs font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-all">
             <Trash2 className="w-4 h-4" /> Удалить
           </Button>
         </div>
