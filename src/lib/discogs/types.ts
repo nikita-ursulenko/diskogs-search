@@ -50,6 +50,7 @@ export type Radar = {
   maxPrice: string;
   notes?: string;
   active: boolean;
+  country?: string;
   lastPrice?: number;
   createdAt: number;
 };

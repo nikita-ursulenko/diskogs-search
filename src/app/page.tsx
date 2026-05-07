@@ -51,7 +51,8 @@ export default function Home() {
     sleeveCondition: "Very Good Plus (VG+)",
     maxPrice: "",
     notes: "",
-    trackMaster: false
+    trackMaster: false,
+    country: ""
   });
 
   // Init Telegram and Fetch Radars
@@ -133,7 +134,7 @@ export default function Home() {
     setIsSearching(false);
   };
 
-  const handleSaveWatchlist = async (data: typeof formState) => {
+  const handleSaveWatchlist = async (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean; country?: string }) => {
     if (!selectedRelease) return;
 
     const newWatch: Radar = {
@@ -150,6 +151,7 @@ export default function Home() {
       maxPrice: data.maxPrice,
       notes: data.notes,
       active: true,
+      country: data.country,
       createdAt: Date.now(),
     };
 
@@ -168,7 +170,8 @@ export default function Home() {
         sleeveCondition: "Very Good Plus (VG+)", 
         maxPrice: "", 
         notes: "", 
-        trackMaster: false 
+        trackMaster: false,
+        country: "" 
       });
     }, 300);
   };

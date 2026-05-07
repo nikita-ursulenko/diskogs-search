@@ -16,13 +16,14 @@ interface ReleaseDrawerProps {
   isLoadingDetails: boolean;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean }) => void;
+  onSave: (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean; country?: string }) => void;
   formState: {
     mediaCondition: string;
     sleeveCondition: string;
     maxPrice: string;
     notes: string;
     trackMaster: boolean;
+    country?: string;
   };
   setFormState: (state: any) => void;
 }
@@ -192,22 +193,50 @@ export function ReleaseDrawer({
                     </div>
                   )}
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
                         <Settings className="w-3.5 h-3.5" /> Настройка Радара
                       </div>
                       
                       {selectedRelease.master_id && (
-                        <div 
-                          className="flex items-center justify-between p-4 bg-[#1a1a1f] border border-white/5 rounded-2xl cursor-pointer active:bg-white/5 transition-colors"
-                          onClick={() => setFormState({ ...formState, trackMaster: !formState.trackMaster })}
-                        >
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-bold text-white">Весь Master Release</span>
-                            <span className="text-[10px] text-zinc-500 font-medium">Следить за любой версией этого альбома</span>
-                          </div>
-                          <div className={`w-10 h-5 rounded-full relative transition-colors ${formState.trackMaster ? 'bg-amber-500' : 'bg-zinc-700'}`}>
-                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${formState.trackMaster ? 'right-0.5' : 'left-0.5'}`}></div>
+                        <div className="space-y-3">
+                          <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Область поиска</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div 
+                              onClick={() => setFormState({ ...formState, trackMaster: false })}
+                              className={cn(
+                                "flex flex-col gap-2 p-3 rounded-2xl border transition-all cursor-pointer",
+                                !formState.trackMaster 
+                                  ? "bg-amber-500/10 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.1)]" 
+                                  : "bg-[#1a1a1f] border-white/5 opacity-60 hover:opacity-100"
+                              )}
+                            >
+                              <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", !formState.trackMaster ? "border-amber-500" : "border-zinc-700")}>
+                                {!formState.trackMaster && <div className="w-2 h-2 bg-amber-500 rounded-full" />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-white">Это издание</p>
+                                <p className="text-[9px] text-zinc-500 leading-tight">Только этот пресс</p>
+                              </div>
+                            </div>
+
+                            <div 
+                              onClick={() => setFormState({ ...formState, trackMaster: true })}
+                              className={cn(
+                                "flex flex-col gap-2 p-3 rounded-2xl border transition-all cursor-pointer",
+                                formState.trackMaster 
+                                  ? "bg-blue-500/10 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]" 
+                                  : "bg-[#1a1a1f] border-white/5 opacity-60 hover:opacity-100"
+                              )}
+                            >
+                              <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", formState.trackMaster ? "border-blue-500" : "border-zinc-700")}>
+                                {formState.trackMaster && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-white">Весь альбом</p>
+                                <p className="text-[9px] text-zinc-500 leading-tight">Любая версия (Master)</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -240,6 +269,23 @@ export function ReleaseDrawer({
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+
+                        <div className="space-y-1.5">
+                        <Label className="text-[10px] text-zinc-500 uppercase font-bold ml-1">Регион продавца (Откуда доставка)</Label>
+                        <Select value={formState.country || "Any"} onValueChange={(v) => setFormState({ ...formState, country: v === "Any" ? "" : v })}>
+                          <SelectTrigger className="bg-[#1a1a1f] border-white/5 h-11 rounded-xl">
+                            <SelectValue placeholder="Весь мир" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#1a1a1f] border-white/10 text-white">
+                            <SelectItem value="Any">🌍 Весь мир</SelectItem>
+                            <SelectItem value="Germany">🇩🇪 Германия</SelectItem>
+                            <SelectItem value="United Kingdom">🇬🇧 Великобритания</SelectItem>
+                            <SelectItem value="France">🇫🇷 Франция</SelectItem>
+                            <SelectItem value="United States">🇺🇸 США</SelectItem>
+                            <SelectItem value="Japan">🇯🇵 Япония</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-1.5">

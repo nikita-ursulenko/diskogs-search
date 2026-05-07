@@ -52,8 +52,35 @@ export const discogsService = {
   /**
    * Find the cheapest available release within a Master Release.
    */
-  async getCheapestFromMaster(masterId: number) {
-    const endpoint = `/database/search?master_id=${masterId}&type=release&sort=price&sort_order=asc&per_page=1`;
+  async getCheapestFromMaster(masterId: number, shipsFrom?: string) {
+    const searchParams = new URLSearchParams({
+      master_id: masterId.toString(),
+      type: "release",
+      sort: "price",
+      sort_order: "asc",
+      per_page: "1"
+    });
+    if (shipsFrom) searchParams.append("ships_from", shipsFrom);
+
+    const endpoint = `/database/search?${searchParams.toString()}`;
+    const response = await discogs.request<DiscogsSearchResponse>(endpoint);
+    return response.results?.[0] || null;
+  },
+
+  /**
+   * Find the cheapest available listing for a specific release with country filter.
+   */
+  async getCheapestFromRelease(releaseId: number, shipsFrom?: string) {
+    const searchParams = new URLSearchParams({
+      release_id: releaseId.toString(),
+      type: "release",
+      sort: "price",
+      sort_order: "asc",
+      per_page: "1"
+    });
+    if (shipsFrom) searchParams.append("ships_from", shipsFrom);
+
+    const endpoint = `/database/search?${searchParams.toString()}`;
     const response = await discogs.request<DiscogsSearchResponse>(endpoint);
     return response.results?.[0] || null;
   }

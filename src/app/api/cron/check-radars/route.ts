@@ -38,11 +38,16 @@ export async function GET() {
           
           if (radar.masterId) {
             // Если включено отслеживание Master Release — ищем самое дешевое предложение среди всех версий
-            const cheapestVersion = await discogsService.getCheapestFromMaster(radar.masterId);
+            const cheapestVersion = await discogsService.getCheapestFromMaster(radar.masterId, radar.country);
             currentPrice = cheapestVersion?.lowest_price;
             if (cheapestVersion) currentReleaseId = cheapestVersion.id;
+          } else if (radar.country) {
+            // Обычное отслеживание конкретного релиза, НО с фильтром по стране
+            const cheapestInCountry = await discogsService.getCheapestFromRelease(radar.releaseId, radar.country);
+            currentPrice = cheapestInCountry?.lowest_price;
+            if (cheapestInCountry) currentReleaseId = cheapestInCountry.id;
           } else {
-            // Обычное отслеживание конкретного релиза
+            // Обычное отслеживание конкретного релиза (весь мир)
             const details = await discogsService.getReleaseDetails(radar.releaseId);
             currentPrice = details.lowest_price;
           }
@@ -59,6 +64,7 @@ export async function GET() {
             const caption = `🎯 <b>VinylSniper: Находка!</b>\n\n` +
               `📦 <b>${radar.artist} — ${radar.release}</b>\n` +
               `${radar.masterId ? '💿 <i>(Любая версия альбома)</i>\n' : ''}` +
+              `${radar.country ? `🌍 Регион: <b>${radar.country}</b>\n` : ''}` +
               `💰 Цена: <b>$${currentPrice}</b> (Лимит: $${radar.maxPrice})`;
             
             const reply_markup = {
