@@ -136,7 +136,7 @@ export default function Home() {
     if (res.success && res.data) {
       let results = res.data.results;
       if (onlyInStock) {
-        results = results.filter(r => (r.num_for_sale ?? 0) > 0 || r.lowest_price !== undefined);
+        results = results.filter(r => (r.num_for_sale ?? 0) > 0 || (r.lowest_price !== undefined && r.lowest_price !== null));
       }
       setSearchResults(results);
     }

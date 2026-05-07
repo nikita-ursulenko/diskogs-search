@@ -18,12 +18,11 @@ export async function searchDiscogsAction(
       status: options?.onlyInStock ? "for sale" : undefined,
     });
 
-    // Enrich the first 6 results with prices to avoid "N/A" in the list
-    // We limit this to 6 to respect Discogs API rate limits (60/min)
+    // Enrich the first 12 results with prices to avoid "N/A" in the list
+    // We limit this to 12 to respect Discogs API rate limits
     const enrichedResults = await Promise.all(
-      data.results.slice(0, 6).map(async (item) => {
+      data.results.slice(0, 12).map(async (item) => {
         try {
-          // Add a small delay between requests if needed, but parallel is usually okay for 6
           const details = await discogsService.getReleaseDetails(item.id);
           return {
             ...item,
@@ -31,20 +30,26 @@ export async function searchDiscogsAction(
             num_for_sale: details.num_for_sale
           };
         } catch (e) {
-          console.error(`Failed to enrich result ${item.id}:`, e);
           return item;
         }
       })
     );
 
+    let finalResults = [
+      ...enrichedResults, 
+      ...data.results.slice(12)
+    ];
+
+    // If onlyInStock is true, filter out everything that doesn't have a price or stock count
+    if (options?.onlyInStock) {
+      finalResults = finalResults.filter(r => (r.num_for_sale ?? 0) > 0 || (r.lowest_price !== undefined && r.lowest_price !== null));
+    }
+
     return { 
       success: true, 
       data: { 
         ...data, 
-        results: [
-          ...enrichedResults, 
-          ...data.results.slice(6)
-        ] 
+        results: finalResults
       } 
     };
   } catch (error: any) {
