@@ -79,13 +79,21 @@ export async function searchDiscogsAction(
 
 export async function getReleaseDetailsAction(releaseId: number): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    // Parallel fetch for details and marketplace stats
-    const [details, stats] = await Promise.all([
+    // Parallel fetch for details, marketplace stats and price suggestions
+    const [details, stats, suggestions] = await Promise.all([
       discogsService.getReleaseDetails(releaseId),
-      discogsService.getReleaseStats(releaseId).catch(() => null) // Stats might fail if never sold
+      discogsService.getReleaseStats(releaseId).catch(() => null),
+      discogsService.getPriceSuggestions(releaseId).catch(() => null)
     ]);
 
-    return { success: true, data: { ...details, stats } };
+    return { 
+      success: true, 
+      data: { 
+        ...details, 
+        stats,
+        suggestions
+      } 
+    };
   } catch (error: any) {
     console.error("Release Details Error:", error);
     return { success: false, error: error.message || "Failed to fetch release details" };

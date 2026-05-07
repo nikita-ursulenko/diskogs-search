@@ -52,6 +52,11 @@ export const discogsService = {
     return discogs.request<any>(endpoint);
   },
 
+  async getPriceSuggestions(releaseId: number) {
+    const endpoint = `/marketplace/price_suggestions/${releaseId}`;
+    return discogs.request<any>(endpoint);
+  },
+
   /**
    * Find the cheapest available release within a Master Release.
    */
