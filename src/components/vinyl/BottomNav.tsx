@@ -23,13 +23,10 @@ export function BottomNav({ activeTab, setActiveTab, hasNotifications }: BottomN
       
       <button 
         onClick={() => setActiveTab("inbox")} 
-        className={`flex flex-col items-center gap-1 transition-all duration-300 relative ${activeTab === "inbox" ? "text-amber-400 scale-110" : "text-zinc-500 hover:text-zinc-300"}`}
+        className={`flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === "inbox" ? "text-amber-400 scale-110" : "text-zinc-500 hover:text-zinc-300"}`}
       >
         <div className={`p-2 rounded-xl ${activeTab === "inbox" ? "bg-amber-400/10" : ""}`}>
           <BellRing className="w-6 h-6" />
-          {hasNotifications && (
-            <span className="absolute top-2 right-4 w-2 h-2 bg-amber-500 rounded-full border border-[#0d0d0f]" />
-          )}
         </div>
         <span className="text-[10px] font-black uppercase tracking-tighter">События</span>
       </button>
