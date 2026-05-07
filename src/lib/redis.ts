@@ -33,14 +33,19 @@ export const redis = {
     }
   },
 
-  async set(key: string, value: any): Promise<void> {
+  async set(key: string, value: any, options?: { ex?: number }): Promise<void> {
     try {
-      const response = await fetch(`${process.env.KV_REST_API_URL}/set/${key}`, {
+      let url = `${process.env.KV_REST_API_URL}/set/${key}`;
+      if (options?.ex) {
+        url += `?ex=${options.ex}`;
+      }
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
         },
-        body: JSON.stringify(value),
+        body: typeof value === 'string' ? value : JSON.stringify(value),
       });
 
       if (!response.ok) {

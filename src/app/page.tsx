@@ -127,8 +127,7 @@ export default function Home() {
     fetchDetails();
   }, [selectedRelease]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performSearch = async () => {
     if (!searchQuery) return;
     setIsSearching(true);
     setSearchResults([]);
@@ -142,6 +141,18 @@ export default function Home() {
     }
     setIsSearching(false);
   };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch();
+  };
+
+  // Auto-update search when filters change
+  useEffect(() => {
+    if (searchQuery && searchResults.length > 0) {
+      performSearch();
+    }
+  }, [onlyInStock]);
 
   const handleSaveWatchlist = async (data: { mediaCondition: string; sleeveCondition: string; maxPrice: string; notes: string; trackMaster: boolean; country?: string }) => {
     if (!selectedRelease) return;

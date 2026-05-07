@@ -19,17 +19,36 @@ export async function searchDiscogsAction(
     });
 
     // Enrich the first 12 results with prices to avoid "N/A" in the list
-    // We limit this to 12 to respect Discogs API rate limits
     const enrichedResults = await Promise.all(
       data.results.slice(0, 12).map(async (item) => {
+        const cacheKey = `release_details:${item.id}`;
         try {
+          // 1. Try to get from cache first
+          const cached = await discogsService.redis.get<any>(cacheKey);
+          if (cached) {
+            return {
+              ...item,
+              lowest_price: cached.lowest_price,
+              num_for_sale: cached.num_for_sale
+            };
+          }
+
+          // 2. If not in cache, fetch from API
           const details = await discogsService.getReleaseDetails(item.id);
+          
+          // 3. Save to cache for 1 hour (3600 seconds)
+          await discogsService.redis.set(cacheKey, {
+            lowest_price: details.lowest_price,
+            num_for_sale: details.num_for_sale
+          }, { ex: 3600 });
+
           return {
             ...item,
             lowest_price: details.lowest_price,
             num_for_sale: details.num_for_sale
           };
         } catch (e) {
+          console.error(`Failed to enrich/cache result ${item.id}:`, e);
           return item;
         }
       })

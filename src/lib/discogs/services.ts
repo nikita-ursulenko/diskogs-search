@@ -1,7 +1,10 @@
+import { redis } from "@/lib/redis";
 import { discogs } from "./client";
 import { DiscogsSearchResponse } from "./types";
 
 export const discogsService = {
+  redis,
+
   /**
    * Search the Discogs Database for releases.
    * @param query General search query (Artist + Title)
