@@ -9,7 +9,7 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-[80px] bg-[#0d0d0f]/90 backdrop-blur-2xl border-t border-white/5 px-6 flex items-center justify-around z-50">
+    <nav className="fixed bottom-0 left-0 right-0 min-h-[80px] bg-[#0d0d0f]/90 backdrop-blur-2xl border-t border-white/5 px-6 flex items-center justify-around z-50" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
       <button 
         onClick={() => setActiveTab("home")} 
         className={`flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === "home" ? "text-amber-400 scale-110" : "text-zinc-500 hover:text-zinc-300"}`}

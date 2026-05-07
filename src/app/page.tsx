@@ -3,7 +3,14 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Disc3, Plus, RadioReceiver, BellRing, ChevronDown, ChevronUp } from "lucide-react";
-import { searchDiscogsAction, getReleaseDetailsAction } from "./actions";
+import { 
+  searchDiscogsAction, 
+  getReleaseDetailsAction, 
+  getRadarsAction, 
+  saveRadarAction, 
+  deleteRadarAction, 
+  toggleRadarAction 
+} from "./actions";
 import { DiscogsSearchResult, Radar } from "@/lib/discogs/types";
 
 // Extracted Components
@@ -15,22 +22,9 @@ import { SearchSection } from "@/components/vinyl/SearchSection";
 export default function Home() {
   const [activeTab, setActiveTab] = useState("home");
   const [isAdding, setIsAdding] = useState(false);
+  const [userId, setUserId] = useState("default");
   
-  const [watchlists, setWatchlists] = useState<Radar[]>([
-    {
-      id: "1",
-      releaseId: 28715,
-      artist: "Daft Punk",
-      release: "Discovery",
-      year: "2001",
-      format: "2xLP, Album",
-      mediaCondition: "Near Mint (NM or M-)",
-      sleeveCondition: "Very Good Plus (VG+)",
-      maxPrice: "150",
-      notes: "Только оригинальный пресс (не ремастер).",
-      active: true,
-    },
-  ]);
+  const [watchlists, setWatchlists] = useState<Radar[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
@@ -50,12 +44,29 @@ export default function Home() {
     notes: ""
   });
 
+  // Init Telegram and Fetch Radars
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
       const tg = (window as any).Telegram.WebApp;
       tg.expand();
+      
+      const user = tg.initDataUnsafe?.user;
+      if (user?.id) {
+        setUserId(user.id.toString());
+      }
     }
   }, []);
+
+  // Fetch Radars from Redis
+  useEffect(() => {
+    async function loadRadars() {
+      const res = await getRadarsAction(userId);
+      if (res.success && res.data) {
+        setWatchlists(res.data);
+      }
+    }
+    loadRadars();
+  }, [userId]);
 
   useEffect(() => {
     if (isDrawerOpen) {
@@ -96,7 +107,7 @@ export default function Home() {
     setIsSearching(false);
   };
 
-  const handleSaveWatchlist = (data: typeof formState) => {
+  const handleSaveWatchlist = async (data: typeof formState) => {
     if (!selectedRelease) return;
 
     const newWatch: Radar = {
@@ -114,8 +125,13 @@ export default function Home() {
       active: true,
     };
 
+    // Optimistic update
     setWatchlists([newWatch, ...watchlists]);
     setIsDrawerOpen(false);
+    
+    // Persistent save
+    await saveRadarAction(newWatch, userId);
+
     setTimeout(() => {
       setSelectedRelease(null);
       setReleaseDetails(null);
@@ -123,11 +139,21 @@ export default function Home() {
     }, 300);
   };
 
+  const handleToggleActive = async (id: string) => {
+    setWatchlists(watchlists.map(w => w.id === id ? { ...w, active: !w.active } : w));
+    await toggleRadarAction(id, userId);
+  };
+
+  const handleDeleteRadar = async (id: string) => {
+    setWatchlists(watchlists.filter(w => w.id !== id));
+    await deleteRadarAction(id, userId);
+  };
+
   return (
-    <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[80px]">
+    <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[calc(80px+env(safe-area-inset-bottom,20px))]">
       
       {/* Premium Header */}
-      <header className="px-5 py-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg">
+      <header className="px-5 pb-4 pt-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}>
         <div className="flex items-center gap-3 text-amber-400">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
             <Disc3 className="w-5 h-5 text-black animate-[spin_4s_linear_infinite]" />
@@ -200,8 +226,8 @@ export default function Home() {
                     <RadarCard 
                       key={radar.id} 
                       radar={radar} 
-                      onToggleActive={(id) => setWatchlists(watchlists.map(w => w.id === id ? { ...w, active: !w.active } : w))}
-                      onDelete={(id) => setWatchlists(watchlists.filter(w => w.id !== id))}
+                      onToggleActive={handleToggleActive}
+                      onDelete={handleDeleteRadar}
                     />
                   ))}
                 </div>
