@@ -13,18 +13,18 @@ interface RadarCardProps {
 
 export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
   return (
-    <Card className={`bg-[#141417] border-white/10 overflow-hidden transition-all duration-300 ${!radar.active ? 'opacity-60 grayscale' : 'hover:border-amber-500/30'}`}>
+    <Card className={`bg-[#141417] border-white/10 overflow-hidden transition-all duration-300 ${radar.active ? 'hover:border-amber-500/30' : ''}`}>
       <CardContent className="p-0">
-        <div className="flex p-4 gap-4">
+        <div className={`flex p-4 gap-4 transition-all duration-300 ${!radar.active ? 'opacity-40 grayscale' : ''}`}>
           <div className="relative shrink-0">
             {radar.thumb ? (
-              <img src={radar.thumb} alt={radar.release} className="w-20 h-20 rounded-xl object-cover" />
+              <img src={radar.thumb} alt={radar.release} className="w-20 h-20 rounded-xl object-cover shadow-lg" />
             ) : (
               <div className="w-20 h-20 rounded-xl bg-white/5 flex items-center justify-center">
                 <Disc3 className="w-10 h-10 text-zinc-800" />
               </div>
             )}
-            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[#141417] ${radar.active ? 'bg-emerald-500' : 'bg-zinc-600'}`}>
+            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-[#141417] ${radar.active ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-zinc-600'}`}>
               <RadioReceiver className="w-3 h-3 text-white" />
             </div>
           </div>
@@ -41,11 +41,16 @@ export function RadarCard({ radar, onToggleActive, onDelete }: RadarCardProps) {
           </div>
         </div>
         <div className="flex border-t border-white/5 bg-black/20 p-2">
-          <Button variant="ghost" size="sm" onClick={() => onToggleActive(radar.id)} className={`flex-1 gap-2 text-xs font-bold ${radar.active ? 'text-amber-400' : 'text-zinc-500'}`}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onToggleActive(radar.id)} 
+            className={`flex-1 gap-2 text-xs font-bold transition-all ${radar.active ? 'text-amber-400 hover:bg-amber-400/10' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 active:scale-95'}`}
+          >
             {radar.active ? <><PauseCircle className="w-4 h-4" /> Пауза</> : <><PlayCircle className="w-4 h-4" /> Запустить</>}
           </Button>
           <div className="w-px h-8 bg-white/5 self-center"></div>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(radar.id)} className="flex-1 gap-2 text-xs font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/5">
+          <Button variant="ghost" size="sm" onClick={() => onDelete(radar.id)} className="flex-1 gap-2 text-xs font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-all">
             <Trash2 className="w-4 h-4" /> Удалить
           </Button>
         </div>

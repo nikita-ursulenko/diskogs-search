@@ -71,7 +71,15 @@ export default function Home() {
       if (selectedRelease?.id) {
         setIsLoadingDetails(true);
         const res = await getReleaseDetailsAction(selectedRelease.id);
-        if (res.success) setReleaseDetails(res.data);
+        if (res.success) {
+          setReleaseDetails(res.data);
+          // Sync price back to search results so it's not "N/A" anymore
+          setSearchResults(prev => prev.map(item => 
+            item.id === selectedRelease.id 
+              ? { ...item, lowest_price: res.data.lowest_price, num_for_sale: res.data.num_for_sale } 
+              : item
+          ));
+        }
         setIsLoadingDetails(false);
       }
     }
@@ -203,10 +211,64 @@ export default function Home() {
         )}
 
         {activeTab === "inbox" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
             <BellRing className="w-12 h-12 text-zinc-700 mb-6" />
             <h3 className="text-xl font-black text-white">Уведомления</h3>
             <p className="text-zinc-500 text-sm">Здесь появятся сообщения о находках.</p>
+          </div>
+        )}
+        
+        {activeTab === "settings" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="flex items-center gap-4 p-5 bg-[#141417] border border-white/10 rounded-3xl">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-2xl font-black text-black">
+                NS
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Nikita Semenov</h3>
+                <p className="text-xs text-zinc-500">Pro Plan • Active</p>
+              </div>
+            </div>
+            
+            <div className="bg-[#141417] border border-white/10 rounded-3xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+                <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Конфигурация Радара</h4>
+              </div>
+              <div className="divide-y divide-white/5">
+                <div className="p-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-zinc-300">Push-уведомления</span>
+                  <div className="w-10 h-5 bg-amber-500 rounded-full relative">
+                    <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+                  </div>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-zinc-300">Авто-поиск (раз в 15 мин)</span>
+                  <div className="w-10 h-5 bg-amber-500 rounded-full relative">
+                    <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+                  </div>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-zinc-300">Валюта</span>
+                  <span className="text-xs font-bold text-amber-500 uppercase">USD ($)</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-[#141417] border border-white/10 rounded-3xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+                <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Аккаунт Discogs</h4>
+              </div>
+              <div className="p-5 text-center">
+                <p className="text-xs text-zinc-500 mb-4">Ваш токен API активен и готов к работе.</p>
+                <div className="py-2 px-4 bg-black/20 border border-white/5 rounded-xl text-[10px] font-mono text-zinc-600 truncate">
+                  ••••••••••••••••••••••••••••••••
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-center text-[10px] text-zinc-700 font-bold uppercase tracking-widest pt-4">
+              VinylSniper v1.0.4
+            </p>
           </div>
         )}
       </main>

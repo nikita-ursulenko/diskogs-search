@@ -137,47 +137,81 @@ export function SearchSection({
             <div 
               key={result.id} 
               onClick={() => onSelectRelease(result)}
-              className="flex items-center gap-4 p-4 bg-[#141417]/40 hover:bg-amber-500/[0.03] border border-white/5 hover:border-amber-500/30 rounded-2xl cursor-pointer transition-all duration-300 group relative overflow-hidden"
+              className="flex flex-col p-4 bg-[#141417]/40 hover:bg-amber-500/[0.03] border border-white/5 hover:border-amber-500/30 rounded-2xl cursor-pointer transition-all duration-300 group relative overflow-hidden"
             >
-              <div className="relative">
-                {result.thumb ? (
-                  <img src={result.thumb} alt={result.title} className="w-14 h-14 rounded-xl object-cover shadow-lg border border-white/5" />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-                    <Disc3 className="w-6 h-6 text-zinc-700" />
-                  </div>
-                )}
-                {result.num_for_sale !== undefined && result.num_for_sale > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#101013]"></span>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0 z-10">
-                <p className="text-sm font-bold text-white truncate group-hover:text-amber-400 transition-colors duration-300">{result.title}</p>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                  <span className="text-[10px] text-zinc-500 font-medium">
-                    {result.year || "N/A"} • {result.format?.[0] || "Vinyl"}
-                  </span>
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0">
+                  {result.thumb ? (
+                    <img src={result.thumb} alt={result.title} className="w-16 h-16 rounded-xl object-cover shadow-lg border border-white/5" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                      <Disc3 className="w-8 h-8 text-zinc-700" />
+                    </div>
+                  )}
                   {result.num_for_sale !== undefined && result.num_for_sale > 0 && (
-                    <span className="text-[10px] text-emerald-400/80 font-bold">
-                      {result.num_for_sale} в наличии
+                    <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#0a0a0c]"></span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0 z-10">
+                  <p className="text-sm font-black text-white truncate group-hover:text-amber-400 transition-colors duration-300">
+                    {result.title}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">
+                      {result.year || "????"} • {result.format?.[0] || "RELEASE"}
                     </span>
+                    {result.country && (
+                      <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-white/5 border-white/10 text-zinc-400 font-bold uppercase">
+                        {result.country}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Community Stats */}
+                  <div className="flex items-center gap-3 mt-1.5 opacity-60">
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                      <span className="text-[9px] text-zinc-400 font-bold">{result.community?.have || 0} в колл.</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
+                      <span className="text-[9px] text-zinc-400 font-bold">{result.community?.want || 0} хотят</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right z-10 shrink-0 flex flex-col justify-center">
+                  {result.lowest_price ? (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[8px] text-zinc-500 uppercase font-black tracking-tighter mb-0.5">от</span>
+                      <span className="text-base font-black text-amber-400 leading-none">
+                        ${result.lowest_price}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-end opacity-30">
+                      <span className="text-[8px] text-zinc-600 uppercase font-black tracking-tighter mb-0.5">от</span>
+                      <span className="text-sm font-black text-zinc-600 leading-none">N/A</span>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="text-right z-10 shrink-0">
-                {result.lowest_price ? (
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-zinc-500 uppercase font-black text-[8px] tracking-tighter mb-0.5">от</span>
-                    <span className="text-sm font-black text-amber-400 leading-none">
-                      ${result.lowest_price}
-                    </span>
+              {/* In Stock Highlight */}
+              {result.num_for_sale !== undefined && result.num_for_sale > 0 && (
+                <div className="mt-3 flex items-center justify-between border-t border-white/[0.03] pt-3">
+                  <div className="flex items-center gap-1.5">
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] px-1.5 py-0 font-black uppercase">
+                      В наличии: {result.num_for_sale} шт.
+                    </Badge>
                   </div>
-                ) : (
-                  <span className="text-[10px] text-zinc-700 font-bold uppercase">N/A</span>
-                )}
-              </div>
+                  <span className="text-[9px] text-zinc-600 font-bold uppercase">Магазин Discogs</span>
+                </div>
+              )}
             </div>
           ))}
         </div>

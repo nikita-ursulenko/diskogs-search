@@ -18,7 +18,35 @@ export async function searchDiscogsAction(
       status: options?.onlyInStock ? "for sale" : undefined,
     });
 
-    return { success: true, data };
+    // Enrich the first 6 results with prices to avoid "N/A" in the list
+    // We limit this to 6 to respect Discogs API rate limits (60/min)
+    const enrichedResults = await Promise.all(
+      data.results.slice(0, 6).map(async (item) => {
+        try {
+          // Add a small delay between requests if needed, but parallel is usually okay for 6
+          const details = await discogsService.getReleaseDetails(item.id);
+          return {
+            ...item,
+            lowest_price: details.lowest_price,
+            num_for_sale: details.num_for_sale
+          };
+        } catch (e) {
+          console.error(`Failed to enrich result ${item.id}:`, e);
+          return item;
+        }
+      })
+    );
+
+    return { 
+      success: true, 
+      data: { 
+        ...data, 
+        results: [
+          ...enrichedResults, 
+          ...data.results.slice(6)
+        ] 
+      } 
+    };
   } catch (error: any) {
     console.error("Server Action Error:", error);
     return { success: false, error: error.message || "Failed to search Discogs" };

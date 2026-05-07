@@ -24,6 +24,10 @@ export interface DiscogsSearchResult {
   barcode?: string[];
   num_for_sale?: number;
   lowest_price?: number;
+  community?: {
+    want: number;
+    have: number;
+  };
 }
 
 export interface DiscogsSearchResponse {

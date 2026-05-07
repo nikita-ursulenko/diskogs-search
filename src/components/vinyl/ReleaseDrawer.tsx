@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Disc3, Loader2, Settings, ExternalLink, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -158,7 +159,7 @@ export function ReleaseDrawer({
                         <span className="text-2xl font-black text-emerald-400">{releaseDetails.num_for_sale}</span>
                         <span className="text-xs text-zinc-500 font-medium">шт.</span>
                       </div>
-                      <p className="text-[10px] text-zinc-400 mt-1">от <span className="text-emerald-400/80 font-bold">{typeof releaseDetails.lowest_price === 'object' ? `${releaseDetails.lowest_price.value} ${releaseDetails.lowest_price.currency}` : `$${releaseDetails.lowest_price}`}</span></p>
+                      <p className="text-[10px] text-zinc-400 mt-1">от <span className="text-emerald-400/80 font-bold">{releaseDetails.lowest_price != null ? (typeof releaseDetails.lowest_price === 'object' ? `${releaseDetails.lowest_price.value} ${releaseDetails.lowest_price.currency}` : `$${releaseDetails.lowest_price}`) : "—"}</span></p>
                     </div>
                     <div className="bg-[#141417] p-4 rounded-2xl border border-white/5">
                       <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Рейтинг</span>
@@ -234,9 +235,18 @@ export function ReleaseDrawer({
                       Активировать Радар
                     </Button>
                     
-                    <div className="flex justify-center pt-2 pb-6">
-                      <a href={releaseDetails.uri} target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors text-[10px] flex items-center gap-1.5">
-                        <ExternalLink className="w-3 h-3" /> Открыть на Discogs
+                    <div className="pt-2 pb-6">
+                      <a 
+                        href={releaseDetails.uri} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "w-full h-14 rounded-2xl border-amber-500/20 bg-amber-500/5 text-amber-200 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500 transition-all gap-3 group flex items-center justify-center"
+                        )}
+                      >
+                        <ExternalLink className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" /> 
+                        <span className="font-bold text-base">Открыть на Discogs</span>
                       </a>
                     </div>
                   </div>

@@ -31,9 +31,10 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
       </button>
 
       <button 
-        className="flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-all duration-300"
+        onClick={() => setActiveTab("settings")} 
+        className={`flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === "settings" ? "text-amber-400 scale-110" : "text-zinc-500 hover:text-zinc-300"}`}
       >
-        <div className="p-2 rounded-xl">
+        <div className={`p-2 rounded-xl ${activeTab === "settings" ? "bg-amber-400/10" : ""}`}>
           <Settings className="w-6 h-6" />
         </div>
         <span className="text-[10px] font-black uppercase tracking-tighter">Настройки</span>
