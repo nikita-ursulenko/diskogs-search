@@ -44,6 +44,7 @@ export default function Home() {
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [sortBy, setSortBy] = useState<"price_asc" | "relevance">("relevance");
   const [isMobile, setIsMobile] = useState(false);
+  const [user, setUser] = useState<{ id: number; first_name: string; last_name?: string; username?: string } | null>(null);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
@@ -65,8 +66,10 @@ export default function Home() {
       const platform = tg.platform;
       setIsMobile(platform === 'ios' || platform === 'android');
       
-      if (tg.initDataUnsafe?.user?.id) {
-        setUserId(tg.initDataUnsafe.user.id.toString());
+      const tgUser = tg.initDataUnsafe?.user;
+      if (tgUser) {
+        setUserId(tgUser.id.toString());
+        setUser(tgUser);
       }
     }
   }, []);
@@ -288,11 +291,11 @@ export default function Home() {
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="flex items-center gap-4 p-5 bg-[#141417] border border-white/10 rounded-3xl">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-2xl font-black text-black">
-                NS
+                {user?.first_name?.charAt(0) || "U"}
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Nikita Semenov</h3>
-                <p className="text-xs text-zinc-500">Pro Plan • Active</p>
+                <h3 className="text-lg font-black text-white">{user ? `${user.first_name} ${user.last_name || ""}` : "Vinyl Hunter"}</h3>
+                <p className="text-xs text-zinc-500">{user?.id ? `ID: ${user.id}` : "Pro Plan • Active"} {user?.username ? `• @${user.username}` : ""}</p>
               </div>
             </div>
             
