@@ -173,21 +173,23 @@ export function ReleaseDrawer({
                     </div>
                   </div>
 
-                  {releaseDetails.stats && (
+                  {(releaseDetails.stats || releaseDetails.lowest_price) && (
                     <div className="bg-[#141417] p-4 rounded-2xl border border-white/5">
                       <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-3">История продаж</span>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="text-center bg-black/20 p-2 rounded-xl">
                           <span className="text-[8px] text-zinc-600 block uppercase mb-1">Low</span>
-                          <span className="text-[10px] text-zinc-300 font-black">{releaseDetails.stats.lowest_price?.value || "—"}</span>
+                          <span className="text-[10px] text-zinc-300 font-black">
+                            {releaseDetails.stats?.lowest_price?.value || (typeof releaseDetails.lowest_price === 'object' ? releaseDetails.lowest_price.value : releaseDetails.lowest_price) || "—"}
+                          </span>
                         </div>
                         <div className="text-center bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
                           <span className="text-[8px] text-amber-500/60 block uppercase mb-1">Median</span>
-                          <span className="text-[10px] text-amber-400 font-black">{releaseDetails.stats.median?.value || "—"}</span>
+                          <span className="text-[10px] text-amber-400 font-black">{releaseDetails.stats?.median?.value || "—"}</span>
                         </div>
                         <div className="text-center bg-black/20 p-2 rounded-xl">
                           <span className="text-[8px] text-zinc-600 block uppercase mb-1">High</span>
-                          <span className="text-[10px] text-zinc-300 font-black">{releaseDetails.stats.highest_price?.value || "—"}</span>
+                          <span className="text-[10px] text-zinc-300 font-black">{releaseDetails.stats?.highest_price?.value || "—"}</span>
                         </div>
                       </div>
                     </div>
