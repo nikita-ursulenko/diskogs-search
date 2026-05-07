@@ -133,7 +133,13 @@ export default function Home() {
     setIsSearching(true);
     setSearchResults([]);
     const res = await searchDiscogsAction(searchQuery, { onlyInStock });
-    if (res.success && res.data) setSearchResults(res.data.results);
+    if (res.success && res.data) {
+      let results = res.data.results;
+      if (onlyInStock) {
+        results = results.filter(r => (r.num_for_sale ?? 0) > 0 || r.lowest_price !== undefined);
+      }
+      setSearchResults(results);
+    }
     setIsSearching(false);
   };
 
