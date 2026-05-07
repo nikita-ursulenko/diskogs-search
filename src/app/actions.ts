@@ -3,6 +3,8 @@
 import { discogsService } from "@/lib/discogs/services";
 import { DiscogsSearchResponse } from "@/lib/discogs/types";
 import { telegram } from "@/lib/telegram";
+import { redis } from "@/lib/redis";
+import { Radar } from "@/lib/discogs/types";
 
 export async function searchDiscogsAction(
   query: string, 
@@ -13,27 +15,42 @@ export async function searchDiscogsAction(
       return { success: false, error: "Search query is empty" };
     }
 
-    // Try to get from cache first
-    const searchCacheKey = `search_v2:${query}:${JSON.stringify(options)}`;
-    try {
-      const cachedSearch = await discogsService.redis.get<any>(searchCacheKey);
-      if (cachedSearch) {
-        return { success: true, data: cachedSearch };
-      }
-    } catch (e) {
-      console.error("Search cache error:", e);
-    }
+    const searchCacheKey = `search_v_aggressive:${query}:${JSON.stringify(options)}`;
+    
+    // 1. Parallel fetching: Regular search + Marketplace search
+    // By adding 'status: for sale', Discogs is more likely to return lowest_price in the results
+    const [regularResults, marketResults] = await Promise.all([
+      discogsService.searchDatabase(query, {
+        format: options?.format !== "Vinyl" ? options?.format : undefined,
+        year: options?.year || undefined,
+        currency: options?.currency,
+        page: 1
+      }),
+      discogsService.searchDatabase(query, {
+        format: options?.format !== "Vinyl" ? options?.format : undefined,
+        year: options?.year || undefined,
+        currency: options?.currency,
+        status: "for sale",
+        page: 1
+      }).catch(() => ({ results: [] }))
+    ]);
 
-    const data = await discogsService.searchDatabase(query, {
-      format: options?.format !== "Vinyl" ? options?.format : undefined,
-      year: options?.year || undefined,
-      status: options?.onlyInStock ? "for sale" : undefined,
-      currency: options?.currency
+    // Combine results from both sources
+    let allResults = [...(marketResults.results || []), ...(regularResults.results || [])];
+    
+    // Deduplicate by ID
+    const seen = new Set();
+    allResults = allResults.filter(item => {
+      if (!item.id || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
     });
 
-    // Enrich the first 12 results with prices to avoid "N/A" in the list
+    // 2. BACKGROUND ENRICHMENT: Fetch marketplace stats for the top 15 results
+    // We only do this for results that don't have price data yet
     const enrichedResults = await Promise.all(
-      data.results.slice(0, 12).map(async (item) => {
+      allResults.slice(0, 15).map(async (item) => {
+        // Try cache first
         const itemCacheKey = `release_market_data:${item.id}:${options?.currency || 'USD'}`;
         try {
           const cached = await discogsService.redis.get<any>(itemCacheKey);
@@ -44,6 +61,22 @@ export async function searchDiscogsAction(
               num_for_sale: cached.num_for_sale ?? item.num_for_sale
             };
           }
+          
+          // If NOT in cache and NO price in search result, and it's a Release (not Master)
+          // We fetch stats in parallel (limited to 15 to avoid Rate Limit)
+          if (!item.lowest_price && item.type === 'release') {
+             const stats = await discogsService.getReleaseStats(item.id, options?.currency);
+             if (stats && stats.lowest_price) {
+               const enrichedItem = {
+                 ...item,
+                 lowest_price: stats.lowest_price.value,
+                 num_for_sale: stats.num_for_sale
+               };
+               // Save to cache for next time
+               await discogsService.redis.set(itemCacheKey, { stats, num_for_sale: stats.num_for_sale }, { ex: 3600 });
+               return enrichedItem;
+             }
+          }
         } catch (e) {}
         return item;
       })
@@ -51,24 +84,38 @@ export async function searchDiscogsAction(
 
     let finalResults = [
       ...enrichedResults, 
-      ...data.results.slice(12)
+      ...allResults.slice(15)
     ];
 
-    // If onlyInStock is true, filter out everything that doesn't have a price or stock count
+    // 3. Sorting: Items with prices ALWAYS first
+    finalResults = finalResults.sort((a, b) => {
+      const hasA = (a.lowest_price != null || (a.num_for_sale ?? 0) > 0);
+      const hasB = (b.lowest_price != null || (b.num_for_sale ?? 0) > 0);
+      
+      if (hasA && !hasB) return -1;
+      if (!hasA && hasB) return 1;
+      
+      return 0;
+    });
+
+    // 4. Filtering for "Only in Stock"
     if (options?.onlyInStock) {
-      finalResults = finalResults.filter(r => (r.num_for_sale ?? 0) > 0 || (r.lowest_price !== undefined && r.lowest_price !== null));
+      finalResults = finalResults.filter(r => {
+        const hasPrice = (r.lowest_price != null);
+        const hasStock = (r.num_for_sale != null && Number(r.num_for_sale) > 0);
+        return hasPrice || hasStock;
+      });
     }
 
-    return { 
-      success: true, 
-      data: { 
-        ...data, 
-        results: finalResults
-      } 
+    const finalData: any = { 
+      pagination: regularResults.pagination || { items: 0, per_page: 100, page: 1, pages: 0, urls: {} },
+      results: finalResults 
     };
+
+    return { success: true, data: finalData };
   } catch (error: any) {
-    console.error("Server Action Error:", error);
-    return { success: false, error: error.message || "Failed to search Discogs" };
+    console.error("Search Action Error:", error);
+    return { success: false, error: "Search service temporarily unavailable" };
   }
 }
 
@@ -76,17 +123,12 @@ export async function getReleaseDetailsAction(releaseId: number, currency?: stri
   try {
     const cacheKey = `release_market_data:${releaseId}:${currency || 'USD'}`;
     
-    // 1. Try to get from cache first
+    // Try cache
     try {
       const cached = await discogsService.redis.get<any>(cacheKey);
-      if (cached) {
-        return { success: true, data: cached };
-      }
-    } catch (e) {
-      console.error("Redis cache error:", e);
-    }
+      if (cached && cached.stats) return { success: true, data: cached };
+    } catch (e) {}
 
-    // 2. Fetch fresh data in parallel
     const [details, stats, suggestions] = await Promise.all([
       discogsService.getReleaseDetails(releaseId),
       discogsService.getReleaseStats(releaseId, currency),
@@ -99,31 +141,24 @@ export async function getReleaseDetailsAction(releaseId: number, currency?: stri
       suggestions: suggestions || {}
     };
 
-    // Add fallback currency info if stats are present
     if (enrichedData.stats && !enrichedData.stats.currency && currency) {
       enrichedData.stats.currency = currency;
     }
 
-    // 3. Save to cache (24 hours)
     try {
       await discogsService.redis.set(cacheKey, enrichedData, { ex: 86400 });
-    } catch (e) {
-      console.error("Redis save error:", e);
-    }
+    } catch (e) {}
 
     return { success: true, data: enrichedData };
   } catch (error: any) {
     console.error("Failed to fetch release details:", error);
-    return { success: false, error: error.message || "Failed to fetch details from Discogs" };
+    return { success: false, error: error.message || "Failed to fetch details" };
   }
 }
 
 /**
  * REDIS ACTIONS FOR RADARS
  */
-import { redis } from "@/lib/redis";
-import { Radar } from "@/lib/discogs/types";
-
 const RADARS_KEY_PREFIX = "vinyl_radars:";
 
 export async function getRadarsAction(userId: string = "default"): Promise<{ success: boolean; data?: Radar[]; error?: string }> {
@@ -131,7 +166,6 @@ export async function getRadarsAction(userId: string = "default"): Promise<{ suc
     const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`);
     return { success: true, data: radars || [] };
   } catch (error: any) {
-    console.error("Redis Get Error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -140,17 +174,11 @@ export async function saveRadarAction(radar: Radar, userId: string = "default"):
   try {
     const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`) || [];
     const existingIndex = radars.findIndex(r => r.id === radar.id);
-    
-    if (existingIndex > -1) {
-      radars[existingIndex] = radar;
-    } else {
-      radars.unshift(radar);
-    }
-    
+    if (existingIndex > -1) radars[existingIndex] = radar;
+    else radars.unshift(radar);
     await redis.set(`${RADARS_KEY_PREFIX}${userId}`, radars);
     return { success: true };
   } catch (error: any) {
-    console.error("Redis Save Error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -162,7 +190,6 @@ export async function deleteRadarAction(radarId: string, userId: string = "defau
     await redis.set(`${RADARS_KEY_PREFIX}${userId}`, filtered);
     return { success: true };
   } catch (error: any) {
-    console.error("Redis Delete Error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -174,7 +201,6 @@ export async function toggleRadarAction(radarId: string, userId: string = "defau
     await redis.set(`${RADARS_KEY_PREFIX}${userId}`, updated);
     return { success: true };
   } catch (error: any) {
-    console.error("Redis Toggle Error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -212,27 +238,15 @@ export async function updateUserSettingsAction(userId: string, settings: Partial
     return { success: false, error: error.message };
   }
 }
+
 export async function testNotificationAction(chatId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const sampleCaption = `🎯 <b>VinylSniper: ТЕСТОВАЯ НАХОДКА!</b>\n\n` +
       `📦 <b>Pink Floyd — The Dark Side Of The Moon</b>\n` +
-      `💿 <i>(Limited Edition, Remastered)</i>\n` +
-      `🌍 Регион: <b>United Kingdom</b>\n` +
       `💰 Цена: <b>$25.00</b> (Ваш лимит: $30.00)`;
-    
-    const reply_markup = {
-      inline_keyboard: [
-        [
-          { text: "🛒 Тест покупки", url: "https://www.discogs.com" }
-        ]
-      ]
-    };
-
-    await telegram.sendMessage(chatId, sampleCaption, { reply_markup });
-    
+    await telegram.sendMessage(chatId, sampleCaption, { reply_markup: { inline_keyboard: [[{ text: "🛒 Купить", url: "https://www.discogs.com" }]] } });
     return { success: true };
   } catch (error: any) {
-    console.error("Test Notification Error:", error);
     return { success: false, error: error.message };
   }
 }

@@ -12,14 +12,15 @@ export const discogsService = {
    */
   async searchDatabase(
     query: string,
-    params?: { year?: string; format?: string; type?: "release" | "master"; status?: string; currency?: string }
+    params?: { year?: string; format?: string; type?: "release" | "master"; status?: string; currency?: string; page?: number }
   ): Promise<DiscogsSearchResponse> {
     const searchParams = new URLSearchParams();
     
     if (query) searchParams.append("q", query);
     if (params?.currency) searchParams.append("curr", params.currency);
     
-    searchParams.append("per_page", "50");
+    searchParams.append("per_page", "100");
+    if (params?.page) searchParams.append("page", params.page.toString());
     
     // We strictly want to track "releases" or "masters" for the sniper
     searchParams.append("type", params?.type || "release");
