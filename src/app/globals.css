@@ -122,9 +122,16 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden select-none;
+    background-color: #0a0a0c;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background-color: #0a0a0c;
+  }
+  ::-webkit-scrollbar {
+    display: none;
   }
 }
