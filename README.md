@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 VinylSniper
 
-## Getting Started
+**VinylSniper** — это премиальное Telegram Mini App для коллекционеров винила, которое позволяет отслеживать редкие релизы на маркетплейсе Discogs в реальном времени.
 
-First, run the development server:
+![VinylSniper Logo](./public/icon.png)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Особенности
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Умный поиск:** Мгновенный поиск по всей базе Discogs с фильтрацией по формату и году.
+- **Мониторинг цен:** Быстрый просмотр минимальных цен и статистики продаж без лишних кликов.
+- **Система Радаров:** Добавляйте интересующие вас издания в список отслеживания.
+- **Telegram Native:** Полная интеграция с Telegram WebApp для бесшовного пользовательского опыта.
+- **Премиальный UI:** Современный темный интерфейс с акцентами в стиле Glassmorphism и плавными анимациями.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠 Технологический стек
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
+- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
+- **Components:** [Shadcn UI](https://ui.shadcn.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **API:** [Discogs API](https://www.discogs.com/developers)
+- **Integration:** [Telegram Web Apps SDK](https://core.telegram.org/bots/webapps)
 
-## Learn More
+## 🚀 Быстрый старт
 
-To learn more about Next.js, take a look at the following resources:
+### Требования
+- Node.js 18+
+- [Discogs API Token](https://www.discogs.com/settings/developers)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Установка
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Клонируйте репозиторий:
+   ```bash
+   git clone https://github.com/your-username/vinyl-sniper.git
+   cd vinyl-sniper
+   ```
 
-## Deploy on Vercel
+2. Установите зависимости:
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Создайте файл `.env.local` в корне проекта:
+   ```env
+   DISCOGS_TOKEN=ваш_токен_здесь
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Запустите сервер для разработки:
+   ```bash
+   npm run dev
+   ```
+
+## 🌍 Деплой на Vercel
+
+1. Загрузите проект на GitHub.
+2. Подключите репозиторий в [Vercel Dashboard](https://vercel.com).
+3. Добавьте переменную окружения `DISCOGS_TOKEN`.
+4. Нажмите **Deploy**.
+
+## 📱 Настройка Telegram Бота
+
+1. Создайте бота через [@BotFather](https://t.me/botfather).
+2. Используйте команду `/newapp`, чтобы создать Mini App.
+3. В качестве URL укажите адрес вашего деплоя на Vercel.
+4. Настройте `inline mode` для быстрого доступа к приложению.
+
+---
+*Сделано с любовью к музыке и коду.* 🎧
