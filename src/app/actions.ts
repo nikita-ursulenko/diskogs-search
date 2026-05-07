@@ -2,6 +2,7 @@
 
 import { discogsService } from "@/lib/discogs/services";
 import { DiscogsSearchResponse } from "@/lib/discogs/types";
+import { telegram } from "@/lib/telegram";
 
 export async function searchDiscogsAction(
   query: string, 
@@ -191,6 +192,30 @@ export async function updateUserSettingsAction(userId: string, settings: Partial
     await redis.set(`${SETTINGS_KEY_PREFIX}${userId}`, updated);
     return { success: true };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+export async function testNotificationAction(chatId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sampleCaption = `🎯 <b>VinylSniper: ТЕСТОВАЯ НАХОДКА!</b>\n\n` +
+      `📦 <b>Pink Floyd — The Dark Side Of The Moon</b>\n` +
+      `💿 <i>(Limited Edition, Remastered)</i>\n` +
+      `🌍 Регион: <b>United Kingdom</b>\n` +
+      `💰 Цена: <b>$25.00</b> (Ваш лимит: $30.00)`;
+    
+    const reply_markup = {
+      inline_keyboard: [
+        [
+          { text: "🛒 Тест покупки", url: "https://www.discogs.com" }
+        ]
+      ]
+    };
+
+    await telegram.sendMessage(chatId, sampleCaption, { reply_markup });
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Test Notification Error:", error);
     return { success: false, error: error.message };
   }
 }

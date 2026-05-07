@@ -12,6 +12,7 @@ import {
   toggleRadarAction,
   getUserSettingsAction,
   updateUserSettingsAction,
+  testNotificationAction,
   UserSettings
 } from "./actions";
 import { DiscogsSearchResult, Radar } from "@/lib/discogs/types";
@@ -45,6 +46,8 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<"price_asc" | "relevance">("relevance");
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<{ id: number; first_name: string; last_name?: string; username?: string } | null>(null);
+  const [hasNewNotifications, setHasNewNotifications] = useState(true); // Default to true for demo
+  const [isTestingNotification, setIsTestingNotification] = useState(false);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
@@ -222,10 +225,18 @@ export default function Home() {
             VinylSniper
           </h1>
         </div>
-        <button onClick={() => setActiveTab("inbox")} className="relative p-2 bg-white/5 rounded-full border border-white/10">
-          <BellRing className="w-4 h-4 text-amber-400" />
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a0a0c]"></span>
-        </button>
+          <button 
+            onClick={() => {
+              setActiveTab("inbox");
+              setHasNewNotifications(false);
+            }}
+            className="w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center relative active:scale-90 transition-transform"
+          >
+            <BellRing className="w-5 h-5 text-zinc-400" />
+            {hasNewNotifications && (
+              <span className="absolute top-0 right-0 w-3 h-3 bg-amber-500 rounded-full border-2 border-[#0d0d0f]" />
+            )}
+          </button>
       </header>
 
       <main className="flex-1 p-5 overflow-y-auto">
@@ -297,10 +308,30 @@ export default function Home() {
         )}
 
         {activeTab === "inbox" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
-            <BellRing className="w-12 h-12 text-zinc-700 mb-6" />
-            <h3 className="text-xl font-black text-white">Уведомления</h3>
-            <p className="text-zinc-500 text-sm">Здесь появятся сообщения о находках.</p>
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <BellRing className="w-12 h-12 text-zinc-700 mb-6" />
+              <h3 className="text-xl font-black text-white">Уведомления</h3>
+              <p className="text-zinc-500 text-sm max-w-[200px] mx-auto">Здесь появятся сообщения о находках.</p>
+            </div>
+
+            <div className="bg-[#141417] border border-white/10 rounded-3xl p-6 text-center">
+              <p className="text-zinc-400 text-xs mb-4">Хочешь проверить работу бота?</p>
+              <button 
+                onClick={async () => {
+                  setIsTestingNotification(true);
+                  const res = await testNotificationAction(userId);
+                  if (res.success) {
+                    // Show some feedback maybe?
+                  }
+                  setIsTestingNotification(false);
+                }}
+                disabled={isTestingNotification}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 text-xs"
+              >
+                {isTestingNotification ? "Отправляю..." : "Прислать тестовый пуш"}
+              </button>
+            </div>
           </div>
         )}
         
@@ -376,7 +407,14 @@ export default function Home() {
         setFormState={setFormState}
       />
 
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNav 
+        activeTab={activeTab} 
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === "inbox") setHasNewNotifications(false);
+        }} 
+        hasNotifications={hasNewNotifications}
+      />
     </div>
   );
 }
