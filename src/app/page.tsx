@@ -89,6 +89,10 @@ export default function Home() {
         // In compact mode, viewportHeight is usually < 80% of screen height
         const isActuallyExpanded = tg.isExpanded || (tg.viewportHeight > window.innerHeight * 0.85);
         setIsExpanded(isActuallyExpanded);
+        
+        // Correct way: Set data attributes for CSS to pick up
+        document.documentElement.setAttribute('data-app-expanded', isActuallyExpanded.toString());
+        document.documentElement.style.setProperty('--tg-safe-area-top', `${top}px`);
       };
 
       updateSafeArea();
@@ -282,14 +286,7 @@ export default function Home() {
     <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[calc(80px+env(safe-area-inset-bottom,20px))]">
       
       {/* Premium Header */}
-      <header 
-        className="px-6 pb-4 fixed top-0 left-0 right-0 z-50 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-[padding] duration-300 ease-in-out" 
-        style={{ 
-          paddingTop: isMobile 
-            ? (isExpanded ? '5.5rem' : '0rem') 
-            : '1rem' 
-        }}
-      >
+      <header className="px-6 pb-4 fixed top-0 left-0 right-0 z-50 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-all duration-300 ease-in-out telegram-header">
         <div className="flex items-center gap-3 text-amber-400">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
             <Disc3 className="w-5 h-5 text-black animate-[spin_4s_linear_infinite]" />
@@ -312,14 +309,7 @@ export default function Home() {
           </button>
       </header>
 
-      <main 
-        className="flex-1 p-5 overflow-y-auto"
-        style={{ 
-          marginTop: isMobile 
-            ? (isExpanded ? 'calc(5.5rem + 50px)' : 'calc(0rem + 50px)') 
-            : 'calc(1rem + 50px)' 
-        }}
-      >
+      <main className="flex-1 p-5 overflow-y-auto telegram-main">
         {activeTab === "home" && (
           <div className="space-y-6 animate-in fade-in duration-500">
             

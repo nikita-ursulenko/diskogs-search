@@ -138,7 +138,8 @@
 
 /* Telegram Mini App Specific Fixes */
 :root {
-  --tg-safe-area-top: env(safe-area-inset-top, 0px);
+  --tg-safe-area-top: 0px; /* Updated via JS */
+  --header-height: 70px;
 }
 
 body {
@@ -146,6 +147,23 @@ body {
   margin-top: 0 !important;
 }
 
-#root, .__next {
-  margin-top: 0 !important;
+.telegram-header {
+  /* Default for Compact mode: follow Telegram's lead */
+  padding-top: 0.5rem;
+  height: var(--header-height);
+}
+
+/* Expanded mode: Floating buttons logic */
+[data-app-expanded="true"] .telegram-header {
+  /* Clear floating buttons + small gap */
+  padding-top: calc(var(--tg-safe-area-top) + 2.5rem);
+  height: calc(var(--tg-safe-area-top) + 2.5rem + 3.5rem);
+}
+
+.telegram-main {
+  padding-top: var(--header-height);
+}
+
+[data-app-expanded="true"] .telegram-main {
+  padding-top: calc(var(--tg-safe-area-top) + 6rem);
 }
