@@ -26,6 +26,7 @@ import { SearchSection } from "@/components/vinyl/SearchSection";
 export default function Home() {
   const [activeTab, setActiveTab] = useState("home");
   const [isAdding, setIsAdding] = useState(false);
+  const [initData, setInitData] = useState<string>("");
   const [userId, setUserId] = useState("default");
   
   const [watchlists, setWatchlists] = useState<Radar[]>([]);
@@ -107,6 +108,7 @@ export default function Home() {
       
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
+        setInitData(tg.initData);
         setUserId(tgUser.id.toString());
         setUser(tgUser);
       }
@@ -121,9 +123,11 @@ export default function Home() {
   // Fetch Radars and Settings from Redis
   useEffect(() => {
     async function loadData() {
+      if (!initData) return;
+      
       const [radarsRes, settingsRes] = await Promise.all([
-        getRadarsAction(userId),
-        getUserSettingsAction(userId)
+        getRadarsAction(initData),
+        getUserSettingsAction(initData)
       ]);
       
       if (radarsRes.success && radarsRes.data) {
@@ -134,12 +138,12 @@ export default function Home() {
       }
     }
     loadData();
-  }, [userId]);
+  }, [initData]);
 
   const handleUpdateSetting = async (key: keyof UserSettings, value: any) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
-    await updateUserSettingsAction(userId, { [key]: value });
+    await updateUserSettingsAction(initData, { [key]: value });
   };
 
   useEffect(() => {
@@ -235,7 +239,7 @@ export default function Home() {
     setEditingRadarId(null);
     
     // Persistent save
-    await saveRadarAction(newWatch, userId);
+    await saveRadarAction(initData, newWatch);
 
     setTimeout(() => {
       setSelectedRelease(null);
@@ -253,12 +257,12 @@ export default function Home() {
 
   const handleToggleActive = async (id: string) => {
     setWatchlists(watchlists.map(w => w.id === id ? { ...w, active: !w.active } : w));
-    await toggleRadarAction(id, userId);
+    await toggleRadarAction(initData, id);
   };
 
   const handleDeleteRadar = async (id: string) => {
     setWatchlists(watchlists.filter(w => w.id !== id));
-    await deleteRadarAction(id, userId);
+    await deleteRadarAction(initData, id);
   };
 
   const handleEditRadar = (radar: Radar) => {
@@ -281,6 +285,26 @@ export default function Home() {
     });
     setIsDrawerOpen(true);
   };
+
+  if (typeof window !== "undefined" && !initData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0c] p-10 text-center">
+        <div className="relative flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_30px_rgba(251,191,36,0.2)] mb-8">
+          <Disc3 className="w-10 h-10 text-black animate-[spin_8s_linear_infinite]" />
+        </div>
+        <h1 className="text-2xl font-black text-white mb-4 tracking-tighter">VinylSniper</h1>
+        <p className="text-zinc-500 text-sm max-w-[240px] mb-8 leading-relaxed">
+          Это приложение доступно только через официальный клиент Telegram.
+        </p>
+        <a 
+          href="https://t.me/VinylHunterBot" 
+          className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-amber-500 text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+        >
+          Открыть в Telegram
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-[100dvh] w-full bg-[#0a0a0c] text-zinc-100 font-sans relative pb-[calc(80px+env(safe-area-inset-bottom,20px))]">
@@ -393,7 +417,7 @@ export default function Home() {
               <button 
                 onClick={async () => {
                   setIsTestingNotification(true);
-                  const res = await testNotificationAction(userId);
+                  const res = await testNotificationAction(initData);
                   if (res.success) {
                     // Show some feedback maybe?
                   }

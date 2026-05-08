@@ -159,46 +159,75 @@ export async function getReleaseDetailsAction(releaseId: number, currency?: stri
 /**
  * REDIS ACTIONS FOR RADARS
  */
-const RADARS_KEY_PREFIX = "vinyl_radars:";
+const getUserKeys = (userId: string | number) => ({
+  radars: `user:${userId}:radars`,
+  settings: `user:${userId}:settings`,
+  profile: `user:${userId}:profile`,
+  activity: `user:${userId}:activity`
+});
 
-export async function getRadarsAction(userId: string = "default"): Promise<{ success: boolean; data?: Radar[]; error?: string }> {
+async function verifyAuth(initData: string) {
+  const result = await telegram.verifyInitData(initData);
+  if (!result.success) throw new Error("Unauthorized: Access allowed only via Telegram");
+  
+  // Update activity and profile
+  const keys = getUserKeys(result.user.id);
+  await Promise.all([
+    redis.set(keys.profile, result.user),
+    redis.set(keys.activity, new Date().toISOString())
+  ]);
+  
+  return result.user;
+}
+
+export async function getRadarsAction(initData: string): Promise<{ success: boolean; data?: Radar[]; error?: string }> {
   try {
-    const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`);
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const radars = await redis.get<Radar[]>(keys.radars);
     return { success: true, data: radars || [] };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function saveRadarAction(radar: Radar, userId: string = "default"): Promise<{ success: boolean; error?: string }> {
+export async function saveRadarAction(initData: string, radar: Radar): Promise<{ success: boolean; error?: string }> {
   try {
-    const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`) || [];
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const radars = await redis.get<Radar[]>(keys.radars) || [];
     const existingIndex = radars.findIndex(r => r.id === radar.id);
+    
     if (existingIndex > -1) radars[existingIndex] = radar;
     else radars.unshift(radar);
-    await redis.set(`${RADARS_KEY_PREFIX}${userId}`, radars);
+    
+    await redis.set(keys.radars, radars);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function deleteRadarAction(radarId: string, userId: string = "default"): Promise<{ success: boolean; error?: string }> {
+export async function deleteRadarAction(initData: string, radarId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`) || [];
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const radars = await redis.get<Radar[]>(keys.radars) || [];
     const filtered = radars.filter(r => r.id !== radarId);
-    await redis.set(`${RADARS_KEY_PREFIX}${userId}`, filtered);
+    await redis.set(keys.radars, filtered);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function toggleRadarAction(radarId: string, userId: string = "default"): Promise<{ success: boolean; error?: string }> {
+export async function toggleRadarAction(initData: string, radarId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const radars = await redis.get<Radar[]>(`${RADARS_KEY_PREFIX}${userId}`) || [];
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const radars = await redis.get<Radar[]>(keys.radars) || [];
     const updated = radars.map(r => r.id === radarId ? { ...r, active: !r.active } : r);
-    await redis.set(`${RADARS_KEY_PREFIX}${userId}`, updated);
+    await redis.set(keys.radars, updated);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -214,11 +243,11 @@ export type UserSettings = {
   currency: string;
 };
 
-const SETTINGS_KEY_PREFIX = "user_settings:";
-
-export async function getUserSettingsAction(userId: string = "default"): Promise<{ success: boolean; data?: UserSettings; error?: string }> {
+export async function getUserSettingsAction(initData: string): Promise<{ success: boolean; data?: UserSettings; error?: string }> {
   try {
-    const settings = await redis.get<UserSettings>(`${SETTINGS_KEY_PREFIX}${userId}`);
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const settings = await redis.get<UserSettings>(keys.settings);
     return { 
       success: true, 
       data: settings || { notifications: true, autoSearch: true, currency: "USD" } 
@@ -228,23 +257,26 @@ export async function getUserSettingsAction(userId: string = "default"): Promise
   }
 }
 
-export async function updateUserSettingsAction(userId: string, settings: Partial<UserSettings>): Promise<{ success: boolean; error?: string }> {
+export async function updateUserSettingsAction(initData: string, settings: Partial<UserSettings>): Promise<{ success: boolean; error?: string }> {
   try {
-    const current = await redis.get<UserSettings>(`${SETTINGS_KEY_PREFIX}${userId}`) || { notifications: true, autoSearch: true, currency: "USD" };
+    const user = await verifyAuth(initData);
+    const keys = getUserKeys(user.id);
+    const current = await redis.get<UserSettings>(keys.settings) || { notifications: true, autoSearch: true, currency: "USD" };
     const updated = { ...current, ...settings };
-    await redis.set(`${SETTINGS_KEY_PREFIX}${userId}`, updated);
+    await redis.set(keys.settings, updated);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function testNotificationAction(chatId: string): Promise<{ success: boolean; error?: string }> {
+export async function testNotificationAction(initData: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const user = await verifyAuth(initData);
     const sampleCaption = `🎯 <b>VinylSniper: ТЕСТОВАЯ НАХОДКА!</b>\n\n` +
       `📦 <b>Pink Floyd — The Dark Side Of The Moon</b>\n` +
       `💰 Цена: <b>$25.00</b> (Ваш лимит: $30.00)`;
-    await telegram.sendMessage(chatId, sampleCaption, { reply_markup: { inline_keyboard: [[{ text: "🛒 Купить", url: "https://www.discogs.com" }]] } });
+    await telegram.sendMessage(user.id.toString(), sampleCaption, { reply_markup: { inline_keyboard: [[{ text: "🛒 Купить", url: "https://www.discogs.com" }]] } });
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
