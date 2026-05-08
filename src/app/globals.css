@@ -161,9 +161,9 @@ body {
 }
 
 .telegram-main {
-  padding-top: var(--header-height);
+  padding-top: calc(var(--header-height) + 1.5rem);
 }
 
 [data-app-expanded="true"] .telegram-main {
-  padding-top: calc(var(--tg-safe-area-top) + 6rem);
+  padding-top: calc(var(--tg-safe-area-top) + 7.5rem);
 }
