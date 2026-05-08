@@ -84,7 +84,11 @@ export default function Home() {
         const bottom = tg.contentSafeAreaInset?.bottom || tg.safeAreaInset?.bottom || 0;
         setSafeAreaTop(top);
         setSafeAreaBottom(bottom);
-        setIsExpanded(tg.isExpanded);
+        
+        // Smarter expanded detection: check both SDK flag and actual viewport height
+        // In compact mode, viewportHeight is usually < 80% of screen height
+        const isActuallyExpanded = tg.isExpanded || (tg.viewportHeight > window.innerHeight * 0.85);
+        setIsExpanded(isActuallyExpanded);
       };
 
       updateSafeArea();
@@ -282,7 +286,7 @@ export default function Home() {
         className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-[padding] duration-300 ease-in-out" 
         style={{ 
           paddingTop: isMobile 
-            ? (isExpanded ? '5.5rem' : '0.8rem') 
+            ? (isExpanded ? '5.5rem' : '0rem') 
             : '1rem' 
         }}
       >
