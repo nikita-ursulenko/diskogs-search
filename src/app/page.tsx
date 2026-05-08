@@ -93,11 +93,20 @@ export default function Home() {
       tg.onEvent('viewportChanged', updateSafeArea);
       tg.onEvent('safeAreaChanged', updateSafeArea);
       
+      // Polling for first 3 seconds because Telegram events can be flaky during transition
+      const interval = setInterval(updateSafeArea, 500);
+      const timeout = setTimeout(() => clearInterval(interval), 3000);
+      
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
         setUserId(tgUser.id.toString());
         setUser(tgUser);
       }
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
   }, []);
 
@@ -273,7 +282,7 @@ export default function Home() {
         className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
         style={{ 
           paddingTop: isMobile 
-            ? `calc(max(${isExpanded ? '3.8rem' : '3.2rem'}, ${safeAreaTop}px) + 0.5rem)` 
+            ? `calc(${safeAreaTop}px + ${isExpanded ? '2.8rem' : '1.8rem'})` 
             : '1rem' 
         }}
       >
