@@ -279,10 +279,10 @@ export default function Home() {
       
       {/* Premium Header */}
       <header 
-        className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
+        className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-[padding] duration-300 ease-in-out" 
         style={{ 
           paddingTop: isMobile 
-            ? `calc(${safeAreaTop}px + ${isExpanded ? '2.8rem' : '1.8rem'})` 
+            ? (isExpanded ? '5.5rem' : '0.8rem') 
             : '1rem' 
         }}
       >
