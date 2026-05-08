@@ -51,6 +51,7 @@ export default function Home() {
   const [editingRadarId, setEditingRadarId] = useState<string | null>(null);
   const [safeAreaTop, setSafeAreaTop] = useState(0);
   const [safeAreaBottom, setSafeAreaBottom] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
@@ -83,12 +84,14 @@ export default function Home() {
         const bottom = tg.contentSafeAreaInset?.bottom || tg.safeAreaInset?.bottom || 0;
         setSafeAreaTop(top);
         setSafeAreaBottom(bottom);
+        setIsExpanded(tg.isExpanded);
       };
 
       updateSafeArea();
       
-      // Listen for changes (e.g. orientation or viewport shifts)
+      // Listen for changes
       tg.onEvent('viewportChanged', updateSafeArea);
+      tg.onEvent('safeAreaChanged', updateSafeArea);
       
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
@@ -267,11 +270,11 @@ export default function Home() {
       
       {/* Premium Header */}
       <header 
-        className="px-5 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
+        className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
         style={{ 
-          paddingTop: safeAreaTop > 0 
-            ? `${safeAreaTop + 10}px` 
-            : (isMobile ? 'calc(1.5rem + env(safe-area-inset-top, 0px))' : '1rem') 
+          paddingTop: isMobile 
+            ? `calc(max(${isExpanded ? '3.8rem' : '3.2rem'}, ${safeAreaTop}px) + 0.5rem)` 
+            : '1rem' 
         }}
       >
         <div className="flex items-center gap-3 text-amber-400">
