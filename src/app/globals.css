@@ -135,3 +135,17 @@
     display: none;
   }
 }
+
+/* Telegram Mini App Specific Fixes */
+:root {
+  --tg-safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+body {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+#root, .__next {
+  margin-top: 0 !important;
+}

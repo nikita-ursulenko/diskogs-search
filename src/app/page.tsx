@@ -283,7 +283,7 @@ export default function Home() {
       
       {/* Premium Header */}
       <header 
-        className="px-6 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-[padding] duration-300 ease-in-out" 
+        className="px-6 pb-4 fixed top-0 left-0 right-0 z-50 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg transition-[padding] duration-300 ease-in-out" 
         style={{ 
           paddingTop: isMobile 
             ? (isExpanded ? '5.5rem' : '0rem') 
@@ -312,7 +312,14 @@ export default function Home() {
           </button>
       </header>
 
-      <main className="flex-1 p-5 overflow-y-auto">
+      <main 
+        className="flex-1 p-5 overflow-y-auto"
+        style={{ 
+          marginTop: isMobile 
+            ? (isExpanded ? 'calc(5.5rem + 50px)' : 'calc(0rem + 50px)') 
+            : 'calc(1rem + 50px)' 
+        }}
+      >
         {activeTab === "home" && (
           <div className="space-y-6 animate-in fade-in duration-500">
             
