@@ -49,6 +49,8 @@ export default function Home() {
   const [hasNewNotifications, setHasNewNotifications] = useState(true); // Default to true for demo
   const [isTestingNotification, setIsTestingNotification] = useState(false);
   const [editingRadarId, setEditingRadarId] = useState<string | null>(null);
+  const [safeAreaTop, setSafeAreaTop] = useState(0);
+  const [safeAreaBottom, setSafeAreaBottom] = useState(0);
 
   // Release Setup Form State
   const [formState, setFormState] = useState({
@@ -64,11 +66,29 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
       const tg = (window as any).Telegram.WebApp;
+      tg.ready();
       tg.expand();
+      
+      // Set Theme Colors to blend UI
+      tg.setHeaderColor('#0a0a0c');
+      tg.setBackgroundColor('#0a0a0c');
       
       // Detect platform
       const platform = tg.platform;
       setIsMobile(platform === 'ios' || platform === 'android');
+      
+      // Handle Safe Areas (Bot API 8.0+)
+      const updateSafeArea = () => {
+        const top = tg.contentSafeAreaInset?.top || tg.safeAreaInset?.top || 0;
+        const bottom = tg.contentSafeAreaInset?.bottom || tg.safeAreaInset?.bottom || 0;
+        setSafeAreaTop(top);
+        setSafeAreaBottom(bottom);
+      };
+
+      updateSafeArea();
+      
+      // Listen for changes (e.g. orientation or viewport shifts)
+      tg.onEvent('viewportChanged', updateSafeArea);
       
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
@@ -248,7 +268,11 @@ export default function Home() {
       {/* Premium Header */}
       <header 
         className="px-5 pb-4 sticky top-0 z-10 flex items-center justify-between backdrop-blur-xl bg-[#0a0a0c]/80 border-b border-white/10 shadow-lg" 
-        style={{ paddingTop: isMobile ? 'calc(3.5rem + env(safe-area-inset-top, 0px))' : '1rem' }}
+        style={{ 
+          paddingTop: safeAreaTop > 0 
+            ? `${safeAreaTop + 10}px` 
+            : (isMobile ? 'calc(1.5rem + env(safe-area-inset-top, 0px))' : '1rem') 
+        }}
       >
         <div className="flex items-center gap-3 text-amber-400">
           <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-600 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
@@ -469,6 +493,7 @@ export default function Home() {
           if (tab === "inbox") setHasNewNotifications(false);
         }} 
         hasNotifications={hasNewNotifications}
+        safeAreaBottom={safeAreaBottom}
       />
     </div>
   );
